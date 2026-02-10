@@ -33,13 +33,9 @@ func (s *HttpHandler) HandleTripPreview(w http.ResponseWriter, r *http.Request) 
 	}
 	fmt.Println("Received trip preview request:", reqBody)
 
-	fare := &RideFareModel{
-		UserID: reqBody.UserID,
-	}
-
 	ctx := r.Context()
 
-	t, err := s.Service.CreateTrip(ctx, fare)
+	t, err := s.Service.GetRoute(ctx, &reqBody.Pickup, &reqBody.Destination)
 	if err != nil {
 		log.Println(err)
 	}
