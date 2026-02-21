@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package tripservice;
+
+option go_package = "github.com/iamonah/rideshare/shared/pb/tripservice;tripservice";
+
+// TripService manages ride trips.
+service TripService {
+  // Provides a preview of a trip, including route and fare estimates.
+  rpc PreviewTrip(PreviewTripRequest) returns (PreviewTripResponse);
+}
+
+
+message PreviewTripRequest {
+  string user_id = 1;
+  Coordinate start_location = 2;
+  Coordinate end_location = 3;
+}
+
+message PreviewTripResponse {
+  string trip_id = 1;
+  Route route = 2;
+  repeated RideShare ride_fares = 3;
+}
+
+message Coordinate {
+  double latitude = 1;
+  double longitude = 2;
+}
+
+message Geometry {
+  repeated Coordinate coordinates = 1;
+}
+
+message Route {
+  repeated Geometry geometry = 1;
+  double distance = 2;
+  double duration = 3;
+}
+
+message RideShare {
+  string id = 1;
+  string user_id = 2;
+  string package_slug = 3;
+  double total_price_in_cents = 4;
+}
