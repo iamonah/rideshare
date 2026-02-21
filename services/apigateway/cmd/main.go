@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/iamonah/rideshare/services/apigateway"
 	"github.com/iamonah/rideshare/shared/env"
 )
@@ -22,13 +23,18 @@ var (
 func main() {
 	log.Println("Starting API Gateway...")
 
-	mux := http.NewServeMux()
+	mux := mux.NewRouter()
 
-	mux.HandleFunc(http.MethodPost+" /trip/preview", apigateway.HandleTripPreview)
+	mux.HandleFunc("/trip/preview", apigateway.HandleTripPreview).Methods("POST")
+	mux.HandleFunc("/ws/drivers", apigateway.HandleDriversWebsocket).Methods("GET")
+	mux.HandleFunc("/ws/riders", apigateway.HandleRidersWebsocket).Methods("GET")
 
+	log.Println("Listening on", httpAddr)
+
+	muxHandler := apigateway.WithCORS(mux)
 	server := &http.Server{
 		Addr:    httpAddr,
-		Handler: mux,
+		Handler: muxHandler,
 	}
 
 	shutDown := make(chan error, 1)
@@ -41,12 +47,12 @@ func main() {
 	signalChan := make(chan os.Signal, 1)
 
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
-	fmt.Printf("Signal received: %s", (<-signalChan).String())
 
 	select {
-	case <-shutDown:
-		log.Fatal("HTTP server closed unexpectedly")
-	case <-signalChan:
+	case err := <-shutDown:
+		log.Fatalf("HTTP server closed unexpectedly: %v", err)
+	case signal := <-signalChan:
+		fmt.Printf("Signal received: %s", signal.String())
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
 		defer cancel()
 

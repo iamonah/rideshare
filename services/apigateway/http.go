@@ -26,7 +26,6 @@ func HandleTripPreview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Call trip service
 	payload, err := json.Marshal(reqBody)
 	if err != nil {
 		http.Error(w, "failed to encode request", http.StatusBadRequest)
@@ -39,6 +38,7 @@ func HandleTripPreview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Call trip service
 	req, err := http.NewRequest(
 		http.MethodPost,
 		tripServiceURL+"/preview",
