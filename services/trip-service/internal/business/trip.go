@@ -1,4 +1,4 @@
-package domain
+package business
 
 import (
 	"context"

@@ -3,22 +3,22 @@ package repository
 import (
 	"context"
 
-	"github.com/iamonah/rideshare/services/trip-service/internal/domain"
+	"github.com/iamonah/rideshare/services/trip-service/internal/business"
 )
 
 type inmemRepository struct {
-	trips     map[string]*domain.TripModel
-	rideFares map[string]*domain.RideFareModel
+	trips     map[string]*business.TripModel
+	rideFares map[string]*business.RideFareModel
 }
 
 func NewInmemRepository() *inmemRepository {
 	return &inmemRepository{
-		trips:     make(map[string]*domain.TripModel),
-		rideFares: make(map[string]*domain.RideFareModel),
+		trips:     make(map[string]*business.TripModel),
+		rideFares: make(map[string]*business.RideFareModel),
 	}
 }
 
-func (r *inmemRepository) CreateTrip(ctx context.Context, trip *domain.TripModel) (*domain.TripModel, error) {
+func (r *inmemRepository) CreateTrip(ctx context.Context, trip *business.TripModel) (*business.TripModel, error) {
 	r.trips[trip.ID.Hex()] = trip
 	return trip, nil
 }
