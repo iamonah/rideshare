@@ -89,7 +89,7 @@ func NewClient(conn *websocket.Conn, id string) *Client {
 		Egress: make(chan []byte),
 	}
 }
-func HandleDriversWebsocket(w http.ResponseWriter, r *http.Request) {
+func (h *HandlerApiGateway)HandleDriversWebsocket(w http.ResponseWriter, r *http.Request) {
 	userID := r.URL.Query().Get("userID")
 	if userID == "" {
 		log.Println("Missing userID in query parameters")
@@ -130,7 +130,7 @@ func HandleDriversWebsocket(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func HandleRidersWebsocket(w http.ResponseWriter, r *http.Request) {
+func (h *HandlerApiGateway)HandleRidersWebsocket(w http.ResponseWriter, r *http.Request) {
 	userID := r.URL.Query().Get("userID")
 	if userID == "" {
 		log.Println("Missing userID in query parameters")

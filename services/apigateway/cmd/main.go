@@ -13,11 +13,15 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/iamonah/rideshare/services/apigateway"
+	"github.com/iamonah/rideshare/services/apigateway/client"
 	"github.com/iamonah/rideshare/shared/env"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 var (
-	httpAddr = env.GetString("HTTP_ADDR", ":8081")
+	httpAddr        = env.GetString("HTTP_ADDR", ":8081")
+	tripServiceAddr = env.GetString("TRIP_SERVICE_GRPC_URL", "")
 )
 
 func main() {
@@ -25,13 +29,28 @@ func main() {
 
 	mux := mux.NewRouter()
 
-	mux.HandleFunc("/trip/preview", apigateway.HandleTripPreview).Methods("POST")
-	mux.HandleFunc("/ws/drivers", apigateway.HandleDriversWebsocket).Methods("GET")
-	mux.HandleFunc("/ws/riders", apigateway.HandleRidersWebsocket).Methods("GET")
+	if tripServiceAddr == "" {
+		log.Fatal("TRIP_SERVICE_GRPC_URL is required")
+	}
+
+	tripClient, err := client.NewTripClient(
+		tripServiceAddr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		log.Fatalf("Failed to create gRPC client: %v", err)
+	}
+	log.Printf("Trip gRPC client initialized for %s (non-blocking dial)", tripServiceAddr)
+	defer tripClient.Close()
+
+	apigatewayHandler := apigateway.NewHandlerApiGateway(tripClient)
+	mux.HandleFunc("/trip/preview", apigatewayHandler.HandleTripPreview).Methods("POST")
+	mux.HandleFunc("/ws/drivers", apigatewayHandler.HandleDriversWebsocket).Methods("GET")
+	mux.HandleFunc("/ws/riders", apigatewayHandler.HandleRidersWebsocket).Methods("GET")
 
 	log.Println("Listening on", httpAddr)
 
-	muxHandler := apigateway.WithCORS(mux)
+	muxHandler := apigatewayHandler.WithCORS(mux)
 	server := &http.Server{
 		Addr:    httpAddr,
 		Handler: muxHandler,
