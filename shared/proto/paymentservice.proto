@@ -1,5 +1,5 @@
 syntax = "proto3";
 
-package paymentservice;
+package rideshare.payment.v1;
 
-option go_package="github.com/iamonah/rideshare/shared/pb/paymentservice;paymentservice";
+option go_package="github.com/iamonah/rideshare/shared/pb/payment;payment";
