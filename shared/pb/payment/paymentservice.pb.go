@@ -4,7 +4,7 @@
 // 	protoc        v3.21.12
 // source: paymentservice.proto
 
-package paymentservice
+package payment
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -24,7 +24,7 @@ var File_paymentservice_proto protoreflect.FileDescriptor
 
 const file_paymentservice_proto_rawDesc = "" +
 	"\n" +
-	"\x14paymentservice.proto\x12\x0epaymentserviceBFZDgithub.com/iamonah/rideshare/shared/pb/paymentservice;paymentserviceb\x06proto3"
+	"\x14paymentservice.proto\x12\x14rideshare.payment.v1B8Z6github.com/iamonah/rideshare/shared/pb/payment;paymentb\x06proto3"
 
 var file_paymentservice_proto_goTypes = []any{}
 var file_paymentservice_proto_depIdxs = []int32{

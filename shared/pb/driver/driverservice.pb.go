@@ -4,7 +4,7 @@
 // 	protoc        v3.21.12
 // source: driverservice.proto
 
-package driverservice
+package driver
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -24,7 +24,7 @@ var File_driverservice_proto protoreflect.FileDescriptor
 
 const file_driverservice_proto_rawDesc = "" +
 	"\n" +
-	"\x13driverservice.proto\x12\rdriverserviceBDZBgithub.com/iamonah/rideshare/shared/pb/driverservice;driverserviceb\x06proto3"
+	"\x13driverservice.proto\x12\x13rideshare.driver.v1B6Z4github.com/iamonah/rideshare/shared/pb/driver;driverb\x06proto3"
 
 var file_driverservice_proto_goTypes = []any{}
 var file_driverservice_proto_depIdxs = []int32{

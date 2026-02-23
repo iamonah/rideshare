@@ -4,7 +4,7 @@
 // 	protoc        v3.21.12
 // source: tripservice.proto
 
-package tripservice
+package trip
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -23,9 +23,9 @@ const (
 
 type PreviewTripRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserID        string                 `protobuf:"bytes,1,opt,name=userID,proto3" json:"userID,omitempty"`
-	StartLocation *Coordinate            `protobuf:"bytes,2,opt,name=startLocation,proto3" json:"startLocation,omitempty"`
-	EndLocation   *Coordinate            `protobuf:"bytes,3,opt,name=endLocation,proto3" json:"endLocation,omitempty"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	StartLocation *Coordinate            `protobuf:"bytes,2,opt,name=start_location,json=startLocation,proto3" json:"start_location,omitempty"`
+	EndLocation   *Coordinate            `protobuf:"bytes,3,opt,name=end_location,json=endLocation,proto3" json:"end_location,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -60,9 +60,9 @@ func (*PreviewTripRequest) Descriptor() ([]byte, []int) {
 	return file_tripservice_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *PreviewTripRequest) GetUserID() string {
+func (x *PreviewTripRequest) GetUserId() string {
 	if x != nil {
-		return x.UserID
+		return x.UserId
 	}
 	return ""
 }
@@ -83,9 +83,9 @@ func (x *PreviewTripRequest) GetEndLocation() *Coordinate {
 
 type PreviewTripResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	TripID        string                 `protobuf:"bytes,1,opt,name=tripID,proto3" json:"tripID,omitempty"`
+	TripId        string                 `protobuf:"bytes,1,opt,name=trip_id,json=tripId,proto3" json:"trip_id,omitempty"`
 	Route         *Route                 `protobuf:"bytes,2,opt,name=route,proto3" json:"route,omitempty"`
-	RideFares     []*RideShare           `protobuf:"bytes,3,rep,name=rideFares,proto3" json:"rideFares,omitempty"`
+	RideFares     []*RideShare           `protobuf:"bytes,3,rep,name=ride_fares,json=rideFares,proto3" json:"ride_fares,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -120,9 +120,9 @@ func (*PreviewTripResponse) Descriptor() ([]byte, []int) {
 	return file_tripservice_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *PreviewTripResponse) GetTripID() string {
+func (x *PreviewTripResponse) GetTripId() string {
 	if x != nil {
-		return x.TripID
+		return x.TripId
 	}
 	return ""
 }
@@ -300,9 +300,9 @@ func (x *Route) GetDuration() float64 {
 type RideShare struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	Id                string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	UserID            string                 `protobuf:"bytes,2,opt,name=userID,proto3" json:"userID,omitempty"`
-	PackageSlug       string                 `protobuf:"bytes,3,opt,name=packageSlug,proto3" json:"packageSlug,omitempty"`
-	TotalPriceInCents float64                `protobuf:"fixed64,4,opt,name=totalPriceInCents,proto3" json:"totalPriceInCents,omitempty"`
+	UserId            string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	PackageSlug       string                 `protobuf:"bytes,3,opt,name=package_slug,json=packageSlug,proto3" json:"package_slug,omitempty"`
+	TotalPriceInCents float64                `protobuf:"fixed64,4,opt,name=total_price_in_cents,json=totalPriceInCents,proto3" json:"total_price_in_cents,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -344,9 +344,9 @@ func (x *RideShare) GetId() string {
 	return ""
 }
 
-func (x *RideShare) GetUserID() string {
+func (x *RideShare) GetUserId() string {
 	if x != nil {
-		return x.UserID
+		return x.UserId
 	}
 	return ""
 }
@@ -369,32 +369,33 @@ var File_tripservice_proto protoreflect.FileDescriptor
 
 const file_tripservice_proto_rawDesc = "" +
 	"\n" +
-	"\x11tripservice.proto\x12\vtripservice\"\xa6\x01\n" +
-	"\x12PreviewTripRequest\x12\x16\n" +
-	"\x06userID\x18\x01 \x01(\tR\x06userID\x12=\n" +
-	"\rstartLocation\x18\x02 \x01(\v2\x17.tripservice.CoordinateR\rstartLocation\x129\n" +
-	"\vendLocation\x18\x03 \x01(\v2\x17.tripservice.CoordinateR\vendLocation\"\x8d\x01\n" +
-	"\x13PreviewTripResponse\x12\x16\n" +
-	"\x06tripID\x18\x01 \x01(\tR\x06tripID\x12(\n" +
-	"\x05route\x18\x02 \x01(\v2\x12.tripservice.RouteR\x05route\x124\n" +
-	"\trideFares\x18\x03 \x03(\v2\x16.tripservice.RideShareR\trideFares\"F\n" +
+	"\x11tripservice.proto\x12\x11rideshare.trip.v1\"\xb5\x01\n" +
+	"\x12PreviewTripRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12D\n" +
+	"\x0estart_location\x18\x02 \x01(\v2\x1d.rideshare.trip.v1.CoordinateR\rstartLocation\x12@\n" +
+	"\fend_location\x18\x03 \x01(\v2\x1d.rideshare.trip.v1.CoordinateR\vendLocation\"\x9b\x01\n" +
+	"\x13PreviewTripResponse\x12\x17\n" +
+	"\atrip_id\x18\x01 \x01(\tR\x06tripId\x12.\n" +
+	"\x05route\x18\x02 \x01(\v2\x18.rideshare.trip.v1.RouteR\x05route\x12;\n" +
+	"\n" +
+	"ride_fares\x18\x03 \x03(\v2\x1c.rideshare.trip.v1.RideShareR\trideFares\"F\n" +
 	"\n" +
 	"Coordinate\x12\x1a\n" +
 	"\blatitude\x18\x01 \x01(\x01R\blatitude\x12\x1c\n" +
-	"\tlongitude\x18\x02 \x01(\x01R\tlongitude\"E\n" +
-	"\bGeometry\x129\n" +
-	"\vcoordinates\x18\x01 \x03(\v2\x17.tripservice.CoordinateR\vcoordinates\"r\n" +
-	"\x05Route\x121\n" +
-	"\bgeometry\x18\x01 \x03(\v2\x15.tripservice.GeometryR\bgeometry\x12\x1a\n" +
+	"\tlongitude\x18\x02 \x01(\x01R\tlongitude\"K\n" +
+	"\bGeometry\x12?\n" +
+	"\vcoordinates\x18\x01 \x03(\v2\x1d.rideshare.trip.v1.CoordinateR\vcoordinates\"x\n" +
+	"\x05Route\x127\n" +
+	"\bgeometry\x18\x01 \x03(\v2\x1b.rideshare.trip.v1.GeometryR\bgeometry\x12\x1a\n" +
 	"\bdistance\x18\x02 \x01(\x01R\bdistance\x12\x1a\n" +
-	"\bduration\x18\x03 \x01(\x01R\bduration\"\x83\x01\n" +
+	"\bduration\x18\x03 \x01(\x01R\bduration\"\x88\x01\n" +
 	"\tRideShare\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
-	"\x06userID\x18\x02 \x01(\tR\x06userID\x12 \n" +
-	"\vpackageSlug\x18\x03 \x01(\tR\vpackageSlug\x12,\n" +
-	"\x11totalPriceInCents\x18\x04 \x01(\x01R\x11totalPriceInCents2_\n" +
-	"\vTripService\x12P\n" +
-	"\vPreviewTrip\x12\x1f.tripservice.PreviewTripRequest\x1a .tripservice.PreviewTripResponseB@Z>github.com/iamonah/rideshare/shared/pb/tripservice;tripserviceb\x06proto3"
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId\x12!\n" +
+	"\fpackage_slug\x18\x03 \x01(\tR\vpackageSlug\x12/\n" +
+	"\x14total_price_in_cents\x18\x04 \x01(\x01R\x11totalPriceInCents2k\n" +
+	"\vTripService\x12\\\n" +
+	"\vPreviewTrip\x12%.rideshare.trip.v1.PreviewTripRequest\x1a&.rideshare.trip.v1.PreviewTripResponseB2Z0github.com/iamonah/rideshare/shared/pb/trip;tripb\x06proto3"
 
 var (
 	file_tripservice_proto_rawDescOnce sync.Once
@@ -410,22 +411,22 @@ func file_tripservice_proto_rawDescGZIP() []byte {
 
 var file_tripservice_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_tripservice_proto_goTypes = []any{
-	(*PreviewTripRequest)(nil),  // 0: tripservice.PreviewTripRequest
-	(*PreviewTripResponse)(nil), // 1: tripservice.PreviewTripResponse
-	(*Coordinate)(nil),          // 2: tripservice.Coordinate
-	(*Geometry)(nil),            // 3: tripservice.Geometry
-	(*Route)(nil),               // 4: tripservice.Route
-	(*RideShare)(nil),           // 5: tripservice.RideShare
+	(*PreviewTripRequest)(nil),  // 0: rideshare.trip.v1.PreviewTripRequest
+	(*PreviewTripResponse)(nil), // 1: rideshare.trip.v1.PreviewTripResponse
+	(*Coordinate)(nil),          // 2: rideshare.trip.v1.Coordinate
+	(*Geometry)(nil),            // 3: rideshare.trip.v1.Geometry
+	(*Route)(nil),               // 4: rideshare.trip.v1.Route
+	(*RideShare)(nil),           // 5: rideshare.trip.v1.RideShare
 }
 var file_tripservice_proto_depIdxs = []int32{
-	2, // 0: tripservice.PreviewTripRequest.startLocation:type_name -> tripservice.Coordinate
-	2, // 1: tripservice.PreviewTripRequest.endLocation:type_name -> tripservice.Coordinate
-	4, // 2: tripservice.PreviewTripResponse.route:type_name -> tripservice.Route
-	5, // 3: tripservice.PreviewTripResponse.rideFares:type_name -> tripservice.RideShare
-	2, // 4: tripservice.Geometry.coordinates:type_name -> tripservice.Coordinate
-	3, // 5: tripservice.Route.geometry:type_name -> tripservice.Geometry
-	0, // 6: tripservice.TripService.PreviewTrip:input_type -> tripservice.PreviewTripRequest
-	1, // 7: tripservice.TripService.PreviewTrip:output_type -> tripservice.PreviewTripResponse
+	2, // 0: rideshare.trip.v1.PreviewTripRequest.start_location:type_name -> rideshare.trip.v1.Coordinate
+	2, // 1: rideshare.trip.v1.PreviewTripRequest.end_location:type_name -> rideshare.trip.v1.Coordinate
+	4, // 2: rideshare.trip.v1.PreviewTripResponse.route:type_name -> rideshare.trip.v1.Route
+	5, // 3: rideshare.trip.v1.PreviewTripResponse.ride_fares:type_name -> rideshare.trip.v1.RideShare
+	2, // 4: rideshare.trip.v1.Geometry.coordinates:type_name -> rideshare.trip.v1.Coordinate
+	3, // 5: rideshare.trip.v1.Route.geometry:type_name -> rideshare.trip.v1.Geometry
+	0, // 6: rideshare.trip.v1.TripService.PreviewTrip:input_type -> rideshare.trip.v1.PreviewTripRequest
+	1, // 7: rideshare.trip.v1.TripService.PreviewTrip:output_type -> rideshare.trip.v1.PreviewTripResponse
 	7, // [7:8] is the sub-list for method output_type
 	6, // [6:7] is the sub-list for method input_type
 	6, // [6:6] is the sub-list for extension type_name

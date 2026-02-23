@@ -4,7 +4,7 @@
 // - protoc             v3.21.12
 // source: tripservice.proto
 
-package tripservice
+package trip
 
 import (
 	context "context"
@@ -19,13 +19,16 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	TripService_PreviewTrip_FullMethodName = "/tripservice.TripService/PreviewTrip"
+	TripService_PreviewTrip_FullMethodName = "/rideshare.trip.v1.TripService/PreviewTrip"
 )
 
 // TripServiceClient is the client API for TripService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// TripService manages ride trips.
 type TripServiceClient interface {
+	// Provides a preview of a trip, including route and fare estimates.
 	PreviewTrip(ctx context.Context, in *PreviewTripRequest, opts ...grpc.CallOption) (*PreviewTripResponse, error)
 }
 
@@ -50,7 +53,10 @@ func (c *tripServiceClient) PreviewTrip(ctx context.Context, in *PreviewTripRequ
 // TripServiceServer is the server API for TripService service.
 // All implementations must embed UnimplementedTripServiceServer
 // for forward compatibility.
+//
+// TripService manages ride trips.
 type TripServiceServer interface {
+	// Provides a preview of a trip, including route and fare estimates.
 	PreviewTrip(context.Context, *PreviewTripRequest) (*PreviewTripResponse, error)
 	mustEmbedUnimplementedTripServiceServer()
 }
@@ -108,7 +114,7 @@ func _TripService_PreviewTrip_Handler(srv interface{}, ctx context.Context, dec 
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var TripService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "tripservice.TripService",
+	ServiceName: "rideshare.trip.v1.TripService",
 	HandlerType: (*TripServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
