@@ -10,10 +10,10 @@ import (
 )
 
 type HttpHandler struct {
-	Service TripService
+	Service ExTripBusiness
 }
 
-func NewHttpHandler(service TripService) *HttpHandler {
+func NewHttpHandler(service ExTripBusiness) *HttpHandler {
 	return &HttpHandler{
 		Service: service,
 	}
