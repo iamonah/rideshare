@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package rideshare.trip.v1;
 
-option go_package = "github.com/iamonah/rideshare/shared/pb/trip;trip";
+option go_package = "github.com/iamonah/rideshare/shared/proto/pb/trip;trip";
 
 // TripService manages ride trips.
 service TripService {
