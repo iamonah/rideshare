@@ -1,10 +1,10 @@
-package client
+package grpc_client
 
 import (
 	"errors"
 	"fmt"
 
-	"github.com/iamonah/rideshare/shared/pb/trip"
+	"github.com/iamonah/rideshare/shared/proto/pb/trip"
 	"google.golang.org/grpc"
 )
 
@@ -24,6 +24,7 @@ func NewTripClient(url string, opts ...grpc.DialOption) (*TripClient, error) {
 	}
 
 	c := trip.NewTripServiceClient(conn)
+
 	return &TripClient{
 		Client: c,
 		conn:   conn,

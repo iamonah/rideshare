@@ -13,7 +13,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/iamonah/rideshare/services/apigateway"
-	"github.com/iamonah/rideshare/services/apigateway/client"
+	"github.com/iamonah/rideshare/services/apigateway/grpc_client"
 	"github.com/iamonah/rideshare/shared/env"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -33,14 +33,11 @@ func main() {
 		log.Fatal("TRIP_SERVICE_GRPC_URL is required")
 	}
 
-	tripClient, err := client.NewTripClient(
-		tripServiceAddr,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	)
+	log.Printf("Trip gRPC client initialized for %s (non-blocking dial)", tripServiceAddr)
+	tripClient, err := grpc_client.NewTripClient(tripServiceAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("Failed to create gRPC client: %v", err)
 	}
-	log.Printf("Trip gRPC client initialized for %s (non-blocking dial)", tripServiceAddr)
 	defer tripClient.Close()
 
 	apigatewayHandler := apigateway.NewHandlerApiGateway(tripClient)

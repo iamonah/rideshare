@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/iamonah/rideshare/shared/pb/trip"
+	"github.com/iamonah/rideshare/shared/proto/pb/trip"
 	"github.com/iamonah/rideshare/shared/types"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

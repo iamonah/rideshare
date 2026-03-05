@@ -7,19 +7,19 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/iamonah/rideshare/services/apigateway/client"
+	"github.com/iamonah/rideshare/services/apigateway/grpc_client"
 	"github.com/iamonah/rideshare/shared/contracts"
-	"github.com/iamonah/rideshare/shared/pb/trip"
+	"github.com/iamonah/rideshare/shared/proto/pb/trip"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
 type HandlerApiGateway struct {
-	tripclient *client.TripClient
+	tripclient *grpc_client.TripClient
 }
 
-func NewHandlerApiGateway(tripclient *client.TripClient) *HandlerApiGateway {
+func NewHandlerApiGateway(tripclient *grpc_client.TripClient) *HandlerApiGateway {
 	return &HandlerApiGateway{tripclient: tripclient}
 }
 
@@ -42,6 +42,7 @@ func (h *HandlerApiGateway) HandleTripPreview(w http.ResponseWriter, r *http.Req
 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 	defer cancel()
 
+	//grpc_client call
 	grpcResp, err := h.tripclient.Client.PreviewTrip(ctx, &trip.PreviewTripRequest{
 		UserId: reqBody.UserID,
 		StartLocation: &trip.Coordinate{
