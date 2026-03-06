@@ -1,9 +1,10 @@
-package business
+package grpc_Handler
 
 import (
 	"context"
 	"fmt"
 
+	tripservice "github.com/iamonah/rideshare/services/trip-service/internal/service"
 	"github.com/iamonah/rideshare/shared/proto/pb/trip"
 	"github.com/iamonah/rideshare/shared/types"
 	"google.golang.org/grpc/codes"
@@ -11,11 +12,11 @@ import (
 )
 
 type TripService struct {
-	trips ExTripBusiness
+	trips tripservice.ExTripService
 	trip.UnimplementedTripServiceServer
 }
 
-func NewTripService(trips ExTripBusiness) *TripService {
+func NewTripServer(trips tripservice.ExTripService) *TripService {
 	return &TripService{
 		trips: trips,
 	}

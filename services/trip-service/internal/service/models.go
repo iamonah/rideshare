@@ -1,4 +1,4 @@
-package business
+package service
 
 import "go.mongodb.org/mongo-driver/v2/bson"
 

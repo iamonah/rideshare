@@ -1,4 +1,4 @@
-package business
+package service
 
 import (
 	"context"
@@ -11,17 +11,12 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
-type business struct {
-	repo TripRepository
+type ExTripService interface {
+	CreateTrip(ctx context.Context, fare *RideFareModel) (*TripModel, error)
+	GetRoute(ctx context.Context, pickup, destination *types.Coordinate) (*types.OsrmApiResponse, error)
 }
 
-func NewService(repo TripRepository) *business {
-	return &business{
-		repo: repo,
-	}
-}
-
-func (s *business) CreateTrip(ctx context.Context, fare *RideFareModel) (*TripModel, error) {
+func (s *tripService) CreateTrip(ctx context.Context, fare *RideFareModel) (*TripModel, error) {
 	t := &TripModel{
 		ID:       bson.NewObjectID(),
 		UserID:   fare.UserID,
@@ -32,7 +27,7 @@ func (s *business) CreateTrip(ctx context.Context, fare *RideFareModel) (*TripMo
 	return s.repo.CreateTrip(ctx, t)
 }
 
-func (s *business) GetRoute(ctx context.Context, pickup, destination *types.Coordinate) (*types.OsrmApiResponse, error) {
+func (s *tripService) GetRoute(ctx context.Context, pickup, destination *types.Coordinate) (*types.OsrmApiResponse, error) {
 	url := fmt.Sprintf(
 		"http://router.project-osrm.org/route/v1/driving/%f,%f;%f,%f?overview=full&geometries=geojson",
 		pickup.Longitude, pickup.Latitude,

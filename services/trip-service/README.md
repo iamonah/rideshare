@@ -26,12 +26,12 @@ services/trip-service/
 ### Layer Responsibilities
 
 1. **Domain Layer** (`internal/domain/`)
-   - Contains business domain interfaces
+   - Contains service domain interfaces
    - Defines contracts for repositories and services
-   - Pure business logic, no implementation details
+   - Pure service logic, no implementation details
 
 2. **Service Layer** (`internal/service/`)
-   - Implements business logic
+   - Implements service logic
    - Uses repository interfaces
    - Coordinates between different parts of the system
 
@@ -50,4 +50,4 @@ services/trip-service/
 2. **Separation of Concerns**: Each layer has a specific responsibility
 3. **Testability**: Easy to mock dependencies for testing
 4. **Maintainability**: Clear boundaries between components
-5. **Flexibility**: Easy to swap implementations without affecting business logic
+5. **Flexibility**: Easy to swap implementations without affecting service logic
