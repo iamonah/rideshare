@@ -18,8 +18,7 @@ import (
 )
 
 var (
-	grpcAdd         = env.GetString("HTTP_ADDR", ":8081")
-	tripServiceAddr = env.GetString("TRIP_SERVICE_GRPC_URL", "")
+	grpcAddr = env.GetString("GRPC_ADDR", ":9093")
 )
 
 func main() {
@@ -29,7 +28,7 @@ func main() {
 
 	tripServer := grpc_Handler.NewTripServer(svc)
 
-	listener, err := net.Listen("tcp", "9093")
+	listener, err := net.Listen("tcp", grpcAddr)
 	if err != nil {
 		log.Fatalf("netListen %v", err)
 	}
@@ -40,7 +39,7 @@ func main() {
 
 	shutDown := make(chan error, 1)
 	go func() {
-		log.Printf("Trip gRPC server listening on %s", "9093")
+		log.Printf("Trip gRPC server listening on %s", grpcAddr)
 		if err := grpcServer.Serve(listener); err != nil {
 			shutDown <- err
 		}
