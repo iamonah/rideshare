@@ -1,2 +1,2 @@
 build
-shared/pb/**
+shared/proto/pb/

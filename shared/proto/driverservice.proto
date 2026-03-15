@@ -2,4 +2,4 @@ syntax = "proto3";
 
 package rideshare.driver.v1;
 
-option go_package="github.com/iamonah/rideshare/shared/proto/pb/driver;driver";
+option go_package="github.com/iamonah/rideshare/shared/proto/pb/driverpb;driverpb";
