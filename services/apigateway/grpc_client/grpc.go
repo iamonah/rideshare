@@ -4,12 +4,12 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/iamonah/rideshare/shared/proto/pb/trip"
+	"github.com/iamonah/rideshare/shared/proto/pb/trippb"
 	"google.golang.org/grpc"
 )
 
 type TripClient struct {
-	Client trip.TripServiceClient
+	Client trippb.TripServiceClient
 	conn   *grpc.ClientConn
 }
 
@@ -23,7 +23,7 @@ func NewTripClient(url string, opts ...grpc.DialOption) (*TripClient, error) {
 		return nil, fmt.Errorf("newTripClient: %w", err)
 	}
 
-	c := trip.NewTripServiceClient(conn)
+	c := trippb.NewTripServiceClient(conn)
 
 	return &TripClient{
 		Client: c,

@@ -13,7 +13,6 @@ import (
 	tripdb "github.com/iamonah/rideshare/services/trip-service/internal/infrastructure/tripdb"
 	tripservice "github.com/iamonah/rideshare/services/trip-service/internal/service"
 	"github.com/iamonah/rideshare/shared/env"
-	"github.com/iamonah/rideshare/shared/proto/pb/trip"
 	"google.golang.org/grpc"
 )
 
@@ -26,16 +25,13 @@ func main() {
 	inmemRepo := tripdb.NewInmemRepository()
 	svc := tripservice.NewService(inmemRepo)
 
-	tripServer := grpc_Handler.NewTripServer(svc)
-
 	listener, err := net.Listen("tcp", grpcAddr)
 	if err != nil {
 		log.Fatalf("netListen %v", err)
 	}
 
 	grpcServer := grpc.NewServer(grpc.ChainUnaryInterceptor(nil))
-
-	trip.RegisterTripServiceServer(grpcServer, tripServer)
+	grpc_Handler.NewTripServer(grpcServer, svc)
 
 	shutDown := make(chan error, 1)
 	go func() {
@@ -45,7 +41,6 @@ func main() {
 		}
 	}()
 
-	// Wait for interrupt signal to gracefully shutdown the server
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 

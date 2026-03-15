@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package rideshare.trip.v1;
 
-option go_package = "github.com/iamonah/rideshare/shared/proto/pb/trip;trip";
+option go_package = "github.com/iamonah/rideshare/shared/proto/pb/trippb;trippb";
 
 // TripService manages ride trips.
 service TripService {
@@ -20,7 +20,7 @@ message PreviewTripRequest {
 message PreviewTripResponse {
   string trip_id = 1;
   Route route = 2;
-  repeated RideShare ride_fares = 3;
+  repeated RideFare ride_fares = 3;
 }
 
 message Coordinate {
@@ -38,7 +38,7 @@ message Route {
   double duration = 3;
 }
 
-message RideShare {
+message RideFare {
   string id = 1;
   string user_id = 2;
   string package_slug = 3;

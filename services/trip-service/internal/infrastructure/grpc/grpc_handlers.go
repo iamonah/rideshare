@@ -2,77 +2,89 @@ package grpc_Handler
 
 import (
 	"context"
-	"fmt"
 
-	tripservice "github.com/iamonah/rideshare/services/trip-service/internal/service"
-	"github.com/iamonah/rideshare/shared/proto/pb/trip"
+	"github.com/iamonah/rideshare/services/trip-service/internal/service"
+	"github.com/iamonah/rideshare/shared/errs"
+	"github.com/iamonah/rideshare/shared/errs/grpcerrs"
+	"github.com/iamonah/rideshare/shared/proto/pb/trippb"
 	"github.com/iamonah/rideshare/shared/types"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+	"google.golang.org/grpc"
 )
 
 type TripService struct {
-	trips tripservice.ExTripService
-	trip.UnimplementedTripServiceServer
+	trips service.ExTripService
+	trippb.UnimplementedTripServiceServer
 }
 
-func NewTripServer(trips tripservice.ExTripService) *TripService {
-	return &TripService{
+func NewTripServer(server *grpc.Server, trips service.ExTripService) *TripService {
+	svc := &TripService{
 		trips: trips,
 	}
+	trippb.RegisterTripServiceServer(server, svc)
+	return svc
 }
 
-func (s *TripService) PreviewTrip(ctx context.Context, req *trip.PreviewTripRequest) (
-	*trip.PreviewTripResponse, error) {
+func (s *TripService) PreviewTrip(ctx context.Context, req *trippb.PreviewTripRequest) (
+	*trippb.PreviewTripResponse, error) {
 	if req == nil {
-		return nil, status.Error(codes.InvalidArgument, "request is required")
-	}
-	if req.GetStartLocation() == nil || req.GetEndLocation() == nil {
-		return nil, status.Error(codes.InvalidArgument, "start_location and end_location are required")
+		return nil, grpcerrs.ToStatus(errs.New(errs.InvalidArgument, "request is required"))
 	}
 
-	route, err := s.trips.GetRoute(ctx, &types.Coordinate{
-		Latitude:  req.StartLocation.Latitude,
-		Longitude: req.StartLocation.Longitude,
-	}, &types.Coordinate{
-		Latitude:  req.EndLocation.Latitude,
-		Longitude: req.EndLocation.Longitude,
-	})
+	fieldErrs := errs.NewFieldErrors()
+	if req.GetUserId() == "" {
+		fieldErrs.AddMessage("user_id", "is required")
+	}
+	if req.GetStartLocation() == nil {
+		fieldErrs.AddMessage("start_location", "is required")
+	}
+	if req.GetEndLocation() == nil {
+		fieldErrs.AddMessage("end_location", "is required")
+	}
+
+	pickup := &types.Coordinate{
+		Latitude:  req.GetStartLocation().GetLatitude(),
+		Longitude: req.GetStartLocation().GetLongitude(),
+	}
+
+	destination := &types.Coordinate{
+		Latitude:  req.GetEndLocation().GetLatitude(),
+		Longitude: req.GetEndLocation().GetLongitude(),
+	}
+
+	validateRouteCoordinates(fieldErrs, pickup, destination)
+	if err := fieldErrs.ToError(); err != nil {
+		return nil, grpcerrs.ToStatus(err)
+	}
+	route, err := s.trips.GetRoute(ctx, pickup, destination)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to get route: %v", err)
+		//log error
+		return nil, grpcerrs.ToStatus(err)
 	}
-	if len(route.Routes) == 0 {
-		return nil, status.Error(codes.NotFound, "no route found")
-	}
-
-	first := route.Routes[0]
-	geometry, err := mapOSRMGeometry(first.Geometry.Coordinates)
+	protoRoute, err := toProto(*route)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to map route geometry: %v", err)
+		return nil, grpcerrs.ToStatus(err)
 	}
 
-	return &trip.PreviewTripResponse{
-		Route: &trip.Route{
-			Distance: first.Distance,
-			Duration: first.Duration,
-			Geometry: geometry,
-		},
+	return &trippb.PreviewTripResponse{
+		Route: protoRoute,
 	}, nil
 }
 
-func mapOSRMGeometry(coords [][]float64) ([]*trip.Geometry, error) {
-	geoCoords := make([]*trip.Coordinate, 0, len(coords))
-	for _, c := range coords {
-		if len(c) < 2 {
-			return nil, fmt.Errorf("invalid coordinate length: %d", len(c))
-		}
-		geoCoords = append(geoCoords, &trip.Coordinate{
-			Latitude:  c[1],
-			Longitude: c[0],
-		})
+func validateRouteCoordinates(fieldErrs errs.FieldErrors, pickup, destination *types.Coordinate) error {
+	validateCoordinate(fieldErrs, "start_location", pickup)
+	validateCoordinate(fieldErrs, "end_location", destination)
+	if len(fieldErrs) > 0 {
+		return errs.Validation(fieldErrs)
 	}
 
-	return []*trip.Geometry{
-		{Coordinates: geoCoords},
-	}, nil
+	return nil
+}
+
+func validateCoordinate(fieldErrs errs.FieldErrors, name string, coord *types.Coordinate) {
+	if coord.Latitude < -90 || coord.Latitude > 90 {
+		fieldErrs.AddMessage(name+".latitude", "must be between -90 and 90")
+	}
+	if coord.Longitude < -180 || coord.Longitude > 180 {
+		fieldErrs.AddMessage(name+".longitude", "must be between -180 and 180")
+	}
 }

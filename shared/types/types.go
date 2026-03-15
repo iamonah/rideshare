@@ -11,16 +11,7 @@ type Geometry struct {
 }
 
 type Coordinate struct {
-	Latitude  float64 `json:"latitude"`
-	Longitude float64 `json:"longitude"`
+	Latitude  float64 `json:"latitude" validate:"gte=-90,lte=90"`
+	Longitude float64 `json:"longitude" validate:"gte=-180,lte=180"`
 }
 
-type OsrmApiResponse struct {
-	Routes []struct {
-		Distance float64 `json:"distance"`
-		Duration float64 `json:"duration"`
-		Geometry struct {
-			Coordinates [][]float64 `json:"coordinates"`
-		} `json:"geometry"`
-	} `json:"routes"`
-}

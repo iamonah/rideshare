@@ -4,7 +4,7 @@
 // - protoc             v3.21.12
 // source: tripservice.proto
 
-package trip
+package trippb
 
 import (
 	context "context"

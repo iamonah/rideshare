@@ -9,7 +9,7 @@ import (
 
 	"github.com/iamonah/rideshare/services/apigateway/grpc_client"
 	"github.com/iamonah/rideshare/shared/contracts"
-	"github.com/iamonah/rideshare/shared/proto/pb/trip"
+	"github.com/iamonah/rideshare/shared/proto/pb/trippb"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -43,13 +43,13 @@ func (h *HandlerApiGateway) HandleTripPreview(w http.ResponseWriter, r *http.Req
 	defer cancel()
 
 	//grpc_client call
-	grpcResp, err := h.tripclient.Client.PreviewTrip(ctx, &trip.PreviewTripRequest{
+	grpcResp, err := h.tripclient.Client.PreviewTrip(ctx, &trippb.PreviewTripRequest{
 		UserId: reqBody.UserID,
-		StartLocation: &trip.Coordinate{
+		StartLocation: &trippb.Coordinate{
 			Latitude:  reqBody.Pickup.Latitude,
 			Longitude: reqBody.Pickup.Longitude,
 		},
-		EndLocation: &trip.Coordinate{
+		EndLocation: &trippb.Coordinate{
 			Latitude:  reqBody.Destination.Latitude,
 			Longitude: reqBody.Destination.Longitude,
 		},
@@ -61,7 +61,7 @@ func (h *HandlerApiGateway) HandleTripPreview(w http.ResponseWriter, r *http.Req
 
 	body, err := protojson.Marshal(grpcResp)
 	if err != nil {
-		http.Error(w, "failed to encode trip response", http.StatusInternalServerError)
+		http.Error(w, "failed to encode trippb response", http.StatusInternalServerError)
 		return
 	}
 

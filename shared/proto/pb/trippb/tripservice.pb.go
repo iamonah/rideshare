@@ -4,7 +4,7 @@
 // 	protoc        v3.21.12
 // source: tripservice.proto
 
-package trip
+package trippb
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -85,7 +85,7 @@ type PreviewTripResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TripId        string                 `protobuf:"bytes,1,opt,name=trip_id,json=tripId,proto3" json:"trip_id,omitempty"`
 	Route         *Route                 `protobuf:"bytes,2,opt,name=route,proto3" json:"route,omitempty"`
-	RideFares     []*RideShare           `protobuf:"bytes,3,rep,name=ride_fares,json=rideFares,proto3" json:"ride_fares,omitempty"`
+	RideFares     []*RideFare            `protobuf:"bytes,3,rep,name=ride_fares,json=rideFares,proto3" json:"ride_fares,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -134,7 +134,7 @@ func (x *PreviewTripResponse) GetRoute() *Route {
 	return nil
 }
 
-func (x *PreviewTripResponse) GetRideFares() []*RideShare {
+func (x *PreviewTripResponse) GetRideFares() []*RideFare {
 	if x != nil {
 		return x.RideFares
 	}
@@ -297,7 +297,7 @@ func (x *Route) GetDuration() float64 {
 	return 0
 }
 
-type RideShare struct {
+type RideFare struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	Id                string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	UserId            string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
@@ -307,20 +307,20 @@ type RideShare struct {
 	sizeCache         protoimpl.SizeCache
 }
 
-func (x *RideShare) Reset() {
-	*x = RideShare{}
+func (x *RideFare) Reset() {
+	*x = RideFare{}
 	mi := &file_tripservice_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *RideShare) String() string {
+func (x *RideFare) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RideShare) ProtoMessage() {}
+func (*RideFare) ProtoMessage() {}
 
-func (x *RideShare) ProtoReflect() protoreflect.Message {
+func (x *RideFare) ProtoReflect() protoreflect.Message {
 	mi := &file_tripservice_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -332,33 +332,33 @@ func (x *RideShare) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RideShare.ProtoReflect.Descriptor instead.
-func (*RideShare) Descriptor() ([]byte, []int) {
+// Deprecated: Use RideFare.ProtoReflect.Descriptor instead.
+func (*RideFare) Descriptor() ([]byte, []int) {
 	return file_tripservice_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *RideShare) GetId() string {
+func (x *RideFare) GetId() string {
 	if x != nil {
 		return x.Id
 	}
 	return ""
 }
 
-func (x *RideShare) GetUserId() string {
+func (x *RideFare) GetUserId() string {
 	if x != nil {
 		return x.UserId
 	}
 	return ""
 }
 
-func (x *RideShare) GetPackageSlug() string {
+func (x *RideFare) GetPackageSlug() string {
 	if x != nil {
 		return x.PackageSlug
 	}
 	return ""
 }
 
-func (x *RideShare) GetTotalPriceInCents() float64 {
+func (x *RideFare) GetTotalPriceInCents() float64 {
 	if x != nil {
 		return x.TotalPriceInCents
 	}
@@ -373,12 +373,12 @@ const file_tripservice_proto_rawDesc = "" +
 	"\x12PreviewTripRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12D\n" +
 	"\x0estart_location\x18\x02 \x01(\v2\x1d.rideshare.trip.v1.CoordinateR\rstartLocation\x12@\n" +
-	"\fend_location\x18\x03 \x01(\v2\x1d.rideshare.trip.v1.CoordinateR\vendLocation\"\x9b\x01\n" +
+	"\fend_location\x18\x03 \x01(\v2\x1d.rideshare.trip.v1.CoordinateR\vendLocation\"\x9a\x01\n" +
 	"\x13PreviewTripResponse\x12\x17\n" +
 	"\atrip_id\x18\x01 \x01(\tR\x06tripId\x12.\n" +
-	"\x05route\x18\x02 \x01(\v2\x18.rideshare.trip.v1.RouteR\x05route\x12;\n" +
+	"\x05route\x18\x02 \x01(\v2\x18.rideshare.trip.v1.RouteR\x05route\x12:\n" +
 	"\n" +
-	"ride_fares\x18\x03 \x03(\v2\x1c.rideshare.trip.v1.RideShareR\trideFares\"F\n" +
+	"ride_fares\x18\x03 \x03(\v2\x1b.rideshare.trip.v1.RideFareR\trideFares\"F\n" +
 	"\n" +
 	"Coordinate\x12\x1a\n" +
 	"\blatitude\x18\x01 \x01(\x01R\blatitude\x12\x1c\n" +
@@ -388,14 +388,14 @@ const file_tripservice_proto_rawDesc = "" +
 	"\x05Route\x127\n" +
 	"\bgeometry\x18\x01 \x03(\v2\x1b.rideshare.trip.v1.GeometryR\bgeometry\x12\x1a\n" +
 	"\bdistance\x18\x02 \x01(\x01R\bdistance\x12\x1a\n" +
-	"\bduration\x18\x03 \x01(\x01R\bduration\"\x88\x01\n" +
-	"\tRideShare\x12\x0e\n" +
+	"\bduration\x18\x03 \x01(\x01R\bduration\"\x87\x01\n" +
+	"\bRideFare\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12!\n" +
 	"\fpackage_slug\x18\x03 \x01(\tR\vpackageSlug\x12/\n" +
 	"\x14total_price_in_cents\x18\x04 \x01(\x01R\x11totalPriceInCents2k\n" +
 	"\vTripService\x12\\\n" +
-	"\vPreviewTrip\x12%.rideshare.trip.v1.PreviewTripRequest\x1a&.rideshare.trip.v1.PreviewTripResponseB8Z6github.com/iamonah/rideshare/shared/proto/pb/trip;tripb\x06proto3"
+	"\vPreviewTrip\x12%.rideshare.trip.v1.PreviewTripRequest\x1a&.rideshare.trip.v1.PreviewTripResponseB<Z:github.com/iamonah/rideshare/shared/proto/pb/trippb;trippbb\x06proto3"
 
 var (
 	file_tripservice_proto_rawDescOnce sync.Once
@@ -416,13 +416,13 @@ var file_tripservice_proto_goTypes = []any{
 	(*Coordinate)(nil),          // 2: rideshare.trip.v1.Coordinate
 	(*Geometry)(nil),            // 3: rideshare.trip.v1.Geometry
 	(*Route)(nil),               // 4: rideshare.trip.v1.Route
-	(*RideShare)(nil),           // 5: rideshare.trip.v1.RideShare
+	(*RideFare)(nil),            // 5: rideshare.trip.v1.RideFare
 }
 var file_tripservice_proto_depIdxs = []int32{
 	2, // 0: rideshare.trip.v1.PreviewTripRequest.start_location:type_name -> rideshare.trip.v1.Coordinate
 	2, // 1: rideshare.trip.v1.PreviewTripRequest.end_location:type_name -> rideshare.trip.v1.Coordinate
 	4, // 2: rideshare.trip.v1.PreviewTripResponse.route:type_name -> rideshare.trip.v1.Route
-	5, // 3: rideshare.trip.v1.PreviewTripResponse.ride_fares:type_name -> rideshare.trip.v1.RideShare
+	5, // 3: rideshare.trip.v1.PreviewTripResponse.ride_fares:type_name -> rideshare.trip.v1.RideFare
 	2, // 4: rideshare.trip.v1.Geometry.coordinates:type_name -> rideshare.trip.v1.Coordinate
 	3, // 5: rideshare.trip.v1.Route.geometry:type_name -> rideshare.trip.v1.Geometry
 	0, // 6: rideshare.trip.v1.TripService.PreviewTrip:input_type -> rideshare.trip.v1.PreviewTripRequest
