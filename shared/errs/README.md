@@ -11,8 +11,10 @@ set the exact code and message you want clients to receive.
 Use [`FieldErrors`](/home/leo/Documents/rideshare/shared/errs/field.go) when
 you want structured validation details.
 
-Use `New`, `Newf`, `Wrap`, or `Wrapf` when you want to return an explicit client
-code and message.
+Use `New` when you want to promote an existing error into an `AppError`.
+
+Use `Newf` when you want to keep an underlying error and add a safe formatted
+message for the client.
 
 At service boundaries, prefer returning `AppError` values instead of plain
 `error` so the service decides the code, client message, and captured callsite.
@@ -24,7 +26,7 @@ into a generic internal response.
 
 `AppError`:
 - Carries the exact `ErrCode` and message to return to the client.
-- May also include validation fields and a wrapped cause for diagnostics.
+- May also include validation fields and captured callsite metadata.
 
 Plain `error`:
 - Is a fallback for unexpected failures that have not been promoted into an
@@ -45,31 +47,28 @@ if err := fieldErrs.ToError(); err != nil {
 }
 ```
 
-`Newf`
+`New`
 
 ```go
 if trip == nil {
-	return errs.Newf(errs.NotFound, "trip not found")
+	return errs.New(errs.NotFound, errors.New("trip not found"))
 }
 ```
 
-`Wrap`
+`Newf`
 
 ```go
-if err := authorize(user, trip); err != nil {
-	return errs.Wrap(errs.PermissionDenied, "not allowed to access this trip", err)
+if err := repo.Create(ctx, trip); err != nil {
+	return errs.Newf(errs.Internal, err, "failed to create trip")
 }
 ```
 
-Use `Wrap` only when the message you pass is already safe to expose.
-Do not pass raw provider or infrastructure messages through to clients.
-
-`ValidationMessage`
+`Validation`
 
 ```go
 fieldErrs := errs.NewFieldErrors()
 fieldErrs.AddMessage("request", "is required")
-return errs.ValidationMessage("request is required", fieldErrs)
+return errs.Validation(fieldErrs)
 ```
 
 Plain internal error
@@ -77,7 +76,7 @@ Plain internal error
 ```go
 routeResp, err := client.GetRoute(ctx, pickup, destination)
 if err != nil {
-	return errs.Wrap(errs.Unavailable, "route provider unavailable", err)
+	return errs.Newf(errs.Unavailable, err, "route provider unavailable")
 }
 ```
 

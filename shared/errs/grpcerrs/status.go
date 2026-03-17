@@ -39,8 +39,6 @@ func clientMessage(appErr *sharederrs.AppError) string {
 	switch appErr.Code {
 	case sharederrs.Internal, sharederrs.Unknown, sharederrs.DataLoss, sharederrs.InternalOnlyLog:
 		return "internal service error"
-	case sharederrs.Unavailable:
-		return "service unavailable"
 	default:
 		return appErr.Error()
 	}

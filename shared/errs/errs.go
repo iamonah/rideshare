@@ -1,6 +1,7 @@
 package errs
 
 import (
+	"errors"
 	"fmt"
 	"runtime"
 )
@@ -37,28 +38,34 @@ func (e *AppError) Unwrap() error {
 	return e.Err
 }
 
-func New(code ErrCode, message string) *AppError {
-	return newAppError(1, code, message, nil, nil)
+func New(code ErrCode, err error) *AppError {
+	if err == nil {
+		return nil
+	}
+
+	var appErr *AppError
+	if errors.As(err, &appErr) && appErr != nil && len(appErr.Fields) > 0 {
+		return newAppError(1, code, appErr.Message, nil, appErr.Fields)
+	}
+
+	var fieldErrs FieldErrors
+	if errors.As(err, &fieldErrs) && len(fieldErrs) > 0 {
+		return newAppError(1, code, "validation failed", nil, fieldErrs)
+	}
+
+	return newAppError(1, code, err.Error(), err, nil)
 }
 
-func Newf(code ErrCode, format string, v ...any) *AppError {
-	return newAppError(1, code, fmt.Sprintf(format, v...), nil, nil)
-}
-
-func Wrap(code ErrCode, message string, err error) *AppError {
-	return newAppError(1, code, message, err, nil)
-}
-
-func Wrapf(code ErrCode, err error, format string, v ...any) *AppError {
+func Newf(code ErrCode, err error, format string, v ...any) *AppError {
+	if err == nil {
+		err = fmt.Errorf(format, v...)
+		return newAppError(1, code, err.Error(), err, nil)
+	}
 	return newAppError(1, code, fmt.Sprintf(format, v...), err, nil)
 }
 
 func Validation(fields FieldErrors) *AppError {
 	return validationMessage(2, "validation failed", fields)
-}
-
-func ValidationMessage(message string, fields FieldErrors) *AppError {
-	return validationMessage(2, message, fields)
 }
 
 func validationMessage(skip int, message string, fields FieldErrors) *AppError {
@@ -91,12 +98,4 @@ func newAppError(skip int, code ErrCode, message string, err error, fields Field
 	}
 
 	return appErr
-}
-
-func NewValidation(fields FieldErrors) *AppError {
-	return validationMessage(2, "validation failed", fields)
-}
-
-func NewValidationMessage(message string, fields FieldErrors) *AppError {
-	return validationMessage(2, message, fields)
 }

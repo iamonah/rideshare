@@ -33,6 +33,15 @@ func (e ErrCode) Error() string {
 	return e.String()
 }
 
+func FromGRPCCode(grpcCode codes.Code) ErrCode {
+	for errCode, code := range grpcStatusByCode {
+		if code == grpcCode {
+			return errCode
+		}
+	}
+	return Unknown
+}
+
 const (
 	// Keep these values stable once they are used outside this package.
 	None               ErrCode = 0

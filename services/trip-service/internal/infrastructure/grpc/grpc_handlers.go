@@ -2,6 +2,7 @@ package grpc_Handler
 
 import (
 	"context"
+	"errors"
 
 	"github.com/iamonah/rideshare/services/trip-service/internal/service"
 	"github.com/iamonah/rideshare/shared/errs"
@@ -27,7 +28,7 @@ func NewTripServer(server *grpc.Server, trips service.ExTripService) *TripServic
 func (s *TripService) PreviewTrip(ctx context.Context, req *trippb.PreviewTripRequest) (
 	*trippb.PreviewTripResponse, error) {
 	if req == nil {
-		return nil, grpcerrs.ToStatus(errs.New(errs.InvalidArgument, "request is required"))
+		return nil, grpcerrs.ToStatus(errs.New(errs.InvalidArgument, errors.New("request is required")))
 	}
 
 	fieldErrs := errs.NewFieldErrors()
@@ -41,17 +42,21 @@ func (s *TripService) PreviewTrip(ctx context.Context, req *trippb.PreviewTripRe
 		fieldErrs.AddMessage("end_location", "is required")
 	}
 
+	if err := fieldErrs.ToError(); err != nil {
+		return nil, grpcerrs.ToStatus(err)
+	}
+
 	pickup := &types.Coordinate{
-		Latitude:  req.GetStartLocation().GetLatitude(),
-		Longitude: req.GetStartLocation().GetLongitude(),
+		Latitude:  float64Ptr(req.GetStartLocation().GetLatitude()),
+		Longitude: float64Ptr(req.GetStartLocation().GetLongitude()),
 	}
 
 	destination := &types.Coordinate{
-		Latitude:  req.GetEndLocation().GetLatitude(),
-		Longitude: req.GetEndLocation().GetLongitude(),
+		Latitude:  float64Ptr(req.GetEndLocation().GetLatitude()),
+		Longitude: float64Ptr(req.GetEndLocation().GetLongitude()),
 	}
 
-	validateRouteCoordinates(fieldErrs, pickup, destination)
+	validateRouteCoordinates(&fieldErrs, pickup, destination)
 	if err := fieldErrs.ToError(); err != nil {
 		return nil, grpcerrs.ToStatus(err)
 	}
@@ -66,25 +71,30 @@ func (s *TripService) PreviewTrip(ctx context.Context, req *trippb.PreviewTripRe
 	}
 
 	return &trippb.PreviewTripResponse{
-		Route: protoRoute,
+		Route:     protoRoute,
+		RideFares: []*trippb.RideFare{},
 	}, nil
 }
 
-func validateRouteCoordinates(fieldErrs errs.FieldErrors, pickup, destination *types.Coordinate) error {
+func validateRouteCoordinates(fieldErrs *errs.FieldErrors, pickup, destination *types.Coordinate) {
 	validateCoordinate(fieldErrs, "start_location", pickup)
 	validateCoordinate(fieldErrs, "end_location", destination)
-	if len(fieldErrs) > 0 {
-		return errs.Validation(fieldErrs)
-	}
-
-	return nil
 }
 
-func validateCoordinate(fieldErrs errs.FieldErrors, name string, coord *types.Coordinate) {
-	if coord.Latitude < -90 || coord.Latitude > 90 {
+func validateCoordinate(fieldErrs *errs.FieldErrors, name string, coord *types.Coordinate) {
+	if coord == nil || coord.Latitude == nil {
+		fieldErrs.AddMessage(name+".latitude", "is required")
+	} else if *coord.Latitude < -90 || *coord.Latitude > 90 {
 		fieldErrs.AddMessage(name+".latitude", "must be between -90 and 90")
 	}
-	if coord.Longitude < -180 || coord.Longitude > 180 {
+
+	if coord == nil || coord.Longitude == nil {
+		fieldErrs.AddMessage(name+".longitude", "is required")
+	} else if *coord.Longitude < -180 || *coord.Longitude > 180 {
 		fieldErrs.AddMessage(name+".longitude", "must be between -180 and 180")
 	}
+}
+
+func float64Ptr(v float64) *float64 {
+	return &v
 }

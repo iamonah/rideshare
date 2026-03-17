@@ -1,7 +1,7 @@
 package grpc_Handler
 
 import (
-	"fmt"
+	"errors"
 
 	"github.com/iamonah/rideshare/services/trip-service/internal/service"
 	"github.com/iamonah/rideshare/shared/errs"
@@ -10,7 +10,7 @@ import (
 
 func toProto(os service.OsrmApiResponse) (*trippb.Route, error) {
 	if len(os.Routes) == 0 {
-		return nil, errs.New(errs.NotFound, "no route found")
+		return nil, errs.New(errs.NotFound, errors.New("no route found"))
 	}
 
 	route := os.Routes[0]
@@ -28,20 +28,12 @@ func toProto(os service.OsrmApiResponse) (*trippb.Route, error) {
 
 func mapOSRMGeometry(coords [][]float64) ([]*trippb.Geometry, error) {
 	if len(coords) == 0 {
-		return nil, errs.Wrap(
-			errs.Unavailable,
-			"route service temporarily unavailable",
-			fmt.Errorf("osrm returned route geometry with no coordinates"),
-		)
+		return nil, errs.New(errs.Unavailable, errors.New("route service temporarily unavailable"))
 	}
 	grpcCoords := make([]*trippb.Coordinate, 0, len(coords))
 	for _, pair := range coords {
 		if len(pair) != 2 {
-			return nil, errs.Wrap(
-				errs.Unavailable,
-				"service temporarily unavailable",
-				fmt.Errorf("osrm returned invalid geometry pair length: %d", len(pair)),
-			)
+			return nil, errs.New(errs.Unavailable, errors.New("service temporarily unavailable"))
 		}
 		grpcCoords = append(grpcCoords, &trippb.Coordinate{
 			Latitude:  pair[1],

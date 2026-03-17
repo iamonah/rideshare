@@ -11,6 +11,7 @@ type RideFareModel struct {
 	TotalPriceInCents float64       `bson:"total_price_in_cents" json:"total_price_in_cents"`
 }
 type OsrmApiResponse struct {
+	Code   string `json:"code"`
 	Routes []struct {
 		Distance float64 `json:"distance"`
 		Duration float64 `json:"duration"`
@@ -18,4 +19,9 @@ type OsrmApiResponse struct {
 			Coordinates [][]float64 `json:"coordinates"`
 		} `json:"geometry"`
 	} `json:"routes"`
+}
+
+type OsrmErrorResponse struct {
+	Code    string `json:"code"`
+	Message string `json:"message,omitempty"`
 }
