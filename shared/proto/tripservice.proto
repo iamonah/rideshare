@@ -13,8 +13,8 @@ service TripService {
 
 message PreviewTripRequest {
   string user_id = 1;
-  Coordinate start_location = 2;
-  Coordinate end_location = 3;
+  Coordinate pickup = 2;
+  Coordinate destination = 3;
 }
 
 message PreviewTripResponse {
@@ -43,4 +43,13 @@ message RideFare {
   string user_id = 2;
   string package_slug = 3;
   double total_price_in_cents = 4;
+}
+// Part of the exercise starter code
+message CreateTripRequest {
+  string ride_fare_id = 1;
+  string user_id = 2;
+}
+
+message CreateTripResponse {
+  string trip_id = 1;
 }

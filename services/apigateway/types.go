@@ -14,13 +14,25 @@ type previewTripRequest struct {
 func (req *previewTripRequest) toProto() *trippb.PreviewTripRequest {
 	return &trippb.PreviewTripRequest{
 		UserId: req.UserID,
-		StartLocation: &trippb.Coordinate{
-			Latitude:  *req.Pickup.Latitude,
-			Longitude: *req.Pickup.Longitude,
+		Pickup: &trippb.Coordinate{
+			Latitude:  req.Pickup.Latitude,
+			Longitude: req.Pickup.Longitude,
 		},
-		EndLocation: &trippb.Coordinate{
-			Latitude:  *req.Destination.Latitude,
-			Longitude: *req.Destination.Longitude,
+		Destination: &trippb.Coordinate{
+			Latitude:  req.Destination.Latitude,
+			Longitude: req.Destination.Longitude,
 		},
+	}
+}
+
+type startTripRequest struct {
+	RideFareID string `json:"rideFareID" validate:"required"`
+	UserID     string `json:"userID" validate:"required"`
+}
+
+func (c *startTripRequest) toProto() *trippb.CreateTripRequest {
+	return &trippb.CreateTripRequest{
+		RideFareId: c.RideFareID,
+		UserId:     c.UserID,
 	}
 }
