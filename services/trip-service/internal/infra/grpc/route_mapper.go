@@ -3,17 +3,17 @@ package grpc_Handler
 import (
 	"errors"
 
-	"github.com/iamonah/rideshare/services/trip-service/internal/service"
+	tripdomain "github.com/iamonah/rideshare/services/trip-service/internal/domain/trip"
 	"github.com/iamonah/rideshare/shared/errs"
 	"github.com/iamonah/rideshare/shared/proto/pb/trippb"
 )
 
-func toProto(os service.OsrmApiResponse) (*trippb.Route, error) {
-	if len(os.Routes) == 0 {
+func toProto(routeResp tripdomain.Route) (*trippb.Route, error) {
+	if len(routeResp.Routes) == 0 {
 		return nil, errs.New(errs.NotFound, errors.New("no route found"))
 	}
 
-	route := os.Routes[0]
+	route := routeResp.Routes[0]
 	geometry, err := mapOSRMGeometry(route.Geometry.Coordinates)
 	if err != nil {
 		return nil, err

@@ -8,6 +8,8 @@ option go_package = "github.com/iamonah/rideshare/shared/proto/pb/trippb;trippb"
 service TripService {
   // Provides a preview of a trip, including route and fare estimates.
   rpc PreviewTrip(PreviewTripRequest) returns (PreviewTripResponse);
+  // Creates a new trip based on the selected fare and user information.
+  rpc CreateTrip(CreateTripRequest) returns (CreateTripResponse);
 }
 
 
@@ -44,7 +46,7 @@ message RideFare {
   string package_slug = 3;
   double total_price_in_cents = 4;
 }
-// Part of the exercise starter code
+
 message CreateTripRequest {
   string ride_fare_id = 1;
   string user_id = 2;

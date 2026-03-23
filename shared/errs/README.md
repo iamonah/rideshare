@@ -1,14 +1,14 @@
 # `shared/errs`
 
 `shared/errs` gives the codebase one canonical application error shape:
-[`AppError`](/home/leo/Documents/rideshare/shared/errs/errs.go).
+[`AppError`](/home/iamonah/Documents/rideshare/shared/errs/errs.go).
 
 Callers should not construct `AppError` directly. Use the exported helpers that
 set the exact code and message you want clients to receive.
 
 ## Rules
 
-Use [`FieldErrors`](/home/leo/Documents/rideshare/shared/errs/field.go) when
+Use [`FieldErrors`](/home/iamonah/Documents/rideshare/shared/errs/field.go) when
 you want structured validation details.
 
 Use `New` when you want to promote an existing error into an `AppError`.
@@ -83,7 +83,7 @@ if err != nil {
 ## gRPC Mapping
 
 The gRPC adapter lives in
-[`grpcerrs/status.go`](/home/leo/Documents/rideshare/shared/errs/grpcerrs/status.go).
+[`grpcerrs/status.go`](/home/iamonah/Documents/rideshare/shared/errs/grpcerrs/status.go).
 
 It interprets errors like this:
 

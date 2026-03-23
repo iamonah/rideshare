@@ -1,4 +1,4 @@
-package apigateway
+package httpcommon
 
 import (
 	"context"
@@ -11,8 +11,8 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func writeUpstreamGRPCError(w http.ResponseWriter, serviceName string, err error) {
-	writeAPIError(w, appErrorFromUpstreamGRPC(serviceName, err))
+func WriteUpstreamGRPCError(w http.ResponseWriter, serviceName string, err error) error {
+	return WriteAPIError(w, appErrorFromUpstreamGRPC(serviceName, err))
 }
 
 func apiFieldErrors(st *status.Status) errs.FieldErrors {

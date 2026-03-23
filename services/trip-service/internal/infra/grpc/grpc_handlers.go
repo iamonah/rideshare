@@ -4,16 +4,17 @@ import (
 	"context"
 	"errors"
 
-	"github.com/iamonah/rideshare/services/trip-service/internal/service"
+	tripdomain "github.com/iamonah/rideshare/services/trip-service/internal/domain/trip"
 	"github.com/iamonah/rideshare/shared/errs"
 	"github.com/iamonah/rideshare/shared/errs/grpcerrs"
 	"github.com/iamonah/rideshare/shared/proto/pb/trippb"
 	"github.com/iamonah/rideshare/shared/types"
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"google.golang.org/grpc"
 )
 
 type TripService struct {
-	trips service.ExTripService
+	trips tripdomain.ExtTripBusiness
 	trippb.UnimplementedTripServiceServer
 }
 
@@ -23,7 +24,7 @@ type previewTripInput struct {
 	Destination *types.Coordinate `json:"destination" validate:"required"`
 }
 
-func NewTripServer(server *grpc.Server, trips service.ExTripService) *TripService {
+func NewTripServer(server *grpc.Server, trips tripdomain.ExtTripBusiness) *TripService {
 	svc := &TripService{
 		trips: trips,
 	}
@@ -71,5 +72,43 @@ func (s *TripService) PreviewTrip(ctx context.Context, req *trippb.PreviewTripRe
 	return &trippb.PreviewTripResponse{
 		Route:     protoRoute,
 		RideFares: []*trippb.RideFare{},
+	}, nil
+}
+
+type createTripInput struct {
+	RideFareID string `json:"ride_fare_id" validate:"required"`
+	UserID     string `json:"user_id" validate:"required"`
+}
+
+func (s *TripService) CreateTrip(ctx context.Context, req *trippb.CreateTripRequest) (
+	*trippb.CreateTripResponse, error) {
+	if req == nil {
+		return nil, grpcerrs.ToStatus(errs.New(errs.InvalidArgument, errors.New("request is required")))
+	}
+
+	input := createTripInput{
+		RideFareID: req.GetRideFareId(),
+		UserID:     req.GetUserId(),
+	}
+
+	if err := errs.Validate(input); err != nil {
+		return nil, grpcerrs.ToStatus(errs.New(errs.InvalidArgument, err))
+	}
+
+	rideFareID, err := bson.ObjectIDFromHex(input.RideFareID)
+	if err != nil {
+		return nil, grpcerrs.ToStatus(errs.New(errs.InvalidArgument, errors.New("ride_fare_id must be a valid id")))
+	}
+
+	createTrip, err := s.trips.CreateTrip(ctx, &tripdomain.RideFare{
+		ID:     rideFareID,
+		UserID: input.UserID,
+	})
+	if err != nil {
+		return nil, grpcerrs.ToStatus(err)
+	}
+
+	return &trippb.CreateTripResponse{
+		TripId: createTrip.ID.Hex(),
 	}, nil
 }

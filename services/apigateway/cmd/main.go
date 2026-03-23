@@ -11,9 +11,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gorilla/mux"
-	"github.com/iamonah/rideshare/services/apigateway"
-	"github.com/iamonah/rideshare/services/apigateway/grpc_client"
+	appdriver "github.com/iamonah/rideshare/services/apigateway/internal/app/driver"
+	apppayment "github.com/iamonah/rideshare/services/apigateway/internal/app/payment"
+	apptrip "github.com/iamonah/rideshare/services/apigateway/internal/app/trip"
+	tripgrpc "github.com/iamonah/rideshare/services/apigateway/internal/infra/tripgrpc"
+	httptransport "github.com/iamonah/rideshare/services/apigateway/internal/transport/http"
+	websockettransport "github.com/iamonah/rideshare/services/apigateway/internal/transport/websocket"
 	"github.com/iamonah/rideshare/shared/env"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -27,30 +30,32 @@ var (
 func main() {
 	log.Println("Starting API Gateway...")
 
-	mux := mux.NewRouter()
-
 	if tripServiceAddr == "" {
 		log.Fatal("TRIP_SERVICE_GRPC_URL is required")
 	}
 
 	log.Printf("Trip gRPC client initialized for %s (non-blocking dial)", tripServiceAddr)
-	tripClient, err := grpc_client.NewTripClient(tripServiceAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	tripClient, err := tripgrpc.NewClient(tripServiceAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("Failed to create gRPC client: %v", err)
 	}
 	defer tripClient.Close()
 
-	apigatewayHandler := apigateway.NewHandlerApiGateway(tripClient)
-	mux.HandleFunc("/trip/preview", apigatewayHandler.HandleTripPreview).Methods("POST")
-	mux.HandleFunc("/ws/drivers", apigatewayHandler.HandleDriversWebsocket).Methods("GET")
-	mux.HandleFunc("/ws/riders", apigatewayHandler.HandleRidersWebsocket).Methods("GET")
+	tripService := apptrip.NewService(tripClient)
+	driverService := appdriver.NewService()
+	paymentService := apppayment.NewService()
+	websocketHandler := websockettransport.NewHandler()
 
 	log.Println("Listening on", httpAddr)
 
-	muxHandler := apigatewayHandler.WithCORS(mux)
 	server := &http.Server{
-		Addr:    httpAddr,
-		Handler: muxHandler,
+		Addr: httpAddr,
+		Handler: httptransport.NewRouter(httptransport.Dependencies{
+			Trips:      tripService,
+			Drivers:    driverService,
+			Payments:   paymentService,
+			Websockets: websocketHandler,
+		}),
 	}
 
 	shutDown := make(chan error, 1)

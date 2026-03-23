@@ -1,4 +1,4 @@
-package service
+package osrm
 
 import (
 	"context"
@@ -7,36 +7,38 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
+	tripdomain "github.com/iamonah/rideshare/services/trip-service/internal/domain/trip"
 	"github.com/iamonah/rideshare/shared/errs"
 	"github.com/iamonah/rideshare/shared/types"
-	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
-type ExTripService interface {
-	CreateTrip(ctx context.Context, fare *RideFareModel) (*TripModel, error)
-	GetRoute(ctx context.Context, pickup, destination *types.Coordinate) (*OsrmApiResponse, error)
+const defaultBaseURL = "http://router.project-osrm.org"
+
+type Client struct {
+	baseURL string
+	http    *http.Client
 }
 
-func (s *tripService) CreateTrip(ctx context.Context, fare *RideFareModel) (*TripModel, error) {
-	t := &TripModel{
-		ID:       bson.NewObjectID(),
-		UserID:   fare.UserID,
-		Status:   "pending",
-		RideFare: fare,
+func NewClient(httpClient *http.Client, baseURL string) *Client {
+	if httpClient == nil {
+		httpClient = http.DefaultClient
+	}
+	if baseURL == "" {
+		baseURL = defaultBaseURL
 	}
 
-	createdTrip, err := s.repo.CreateTrip(ctx, t)
-	if err != nil {
-		return nil, errs.Newf(errs.Internal, err, "failed to create trip")
+	return &Client{
+		baseURL: strings.TrimRight(baseURL, "/"),
+		http:    httpClient,
 	}
-
-	return createdTrip, nil
 }
 
-func (s *tripService) GetRoute(ctx context.Context, pickup, destination *types.Coordinate) (*OsrmApiResponse, error) {
+func (c *Client) GetRoute(ctx context.Context, pickup, destination *types.Coordinate) (*tripdomain.Route, error) {
 	url := fmt.Sprintf(
-		"http://router.project-osrm.org/route/v1/driving/%f,%f;%f,%f?overview=full&geometries=geojson",
+		"%s/route/v1/driving/%f,%f;%f,%f?overview=full&geometries=geojson",
+		c.baseURL,
 		pickup.Longitude, pickup.Latitude,
 		destination.Longitude, destination.Latitude,
 	)
@@ -46,9 +48,9 @@ func (s *tripService) GetRoute(ctx context.Context, pickup, destination *types.C
 		return nil, errs.Newf(errs.Internal, err, "failed to build route request")
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := c.http.Do(req)
 	if err != nil {
-		return nil, errs.Newf(errs.Unavailable, err, "route provider unavailable") //how will this error message look like when sent to the client
+		return nil, errs.Newf(errs.Unavailable, err, "route provider unavailable")
 	}
 	defer resp.Body.Close()
 
@@ -58,23 +60,28 @@ func (s *tripService) GetRoute(ctx context.Context, pickup, destination *types.C
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		var routeErr OsrmErrorResponse
+		var routeErr errorResponse
 		if err := json.Unmarshal(body, &routeErr); err != nil {
-			return nil, errs.Newf(errs.Internal, err, "json.Unmarshal route provider error response (status=%d)", resp.StatusCode)
+			return nil, errs.Newf(
+				errs.Internal,
+				err,
+				"json.Unmarshal route provider error response (status=%d)",
+				resp.StatusCode,
+			)
 		}
 
-		return nil, classifyOSRMError(resp.StatusCode, &routeErr)
+		return nil, classifyError(resp.StatusCode, &routeErr)
 	}
 
-	var routeResp OsrmApiResponse
+	var routeResp routeResponse
 	if err := json.Unmarshal(body, &routeResp); err != nil {
 		return nil, errs.Newf(errs.Internal, err, "failed to parse route response")
 	}
 
-	return &routeResp, nil
+	return toDomainRoute(routeResp), nil
 }
 
-func classifyOSRMError(statusCode int, routeErr *OsrmErrorResponse) error {
+func classifyError(statusCode int, routeErr *errorResponse) error {
 	code := ""
 	if routeErr != nil {
 		code = routeErr.Code
@@ -98,4 +105,19 @@ func classifyOSRMError(statusCode int, routeErr *OsrmErrorResponse) error {
 		fmt.Errorf("route provider returned status %d with code %q", statusCode, code),
 		"route provider unavailable",
 	)
+}
+
+func toDomainRoute(routeResp routeResponse) *tripdomain.Route {
+	routes := make([]tripdomain.RouteSummary, 0, len(routeResp.Routes))
+	for _, route := range routeResp.Routes {
+		routes = append(routes, tripdomain.RouteSummary{
+			Distance: route.Distance,
+			Duration: route.Duration,
+			Geometry: tripdomain.RouteGeometry{
+				Coordinates: route.Geometry.Coordinates,
+			},
+		})
+	}
+
+	return &tripdomain.Route{Routes: routes}
 }

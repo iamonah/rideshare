@@ -4,26 +4,30 @@ import (
 	"context"
 	"log"
 	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	grpc_Handler "github.com/iamonah/rideshare/services/trip-service/internal/infrastructure/grpc"
-	tripdb "github.com/iamonah/rideshare/services/trip-service/internal/infrastructure/tripdb"
-	tripservice "github.com/iamonah/rideshare/services/trip-service/internal/service"
+	tripdomain "github.com/iamonah/rideshare/services/trip-service/internal/domain/trip"
+	"github.com/iamonah/rideshare/services/trip-service/internal/infra/external/osrm"
+	grpc_Handler "github.com/iamonah/rideshare/services/trip-service/internal/infra/grpc"
+	tripdb "github.com/iamonah/rideshare/services/trip-service/internal/infra/tripdb"
 	"github.com/iamonah/rideshare/shared/env"
 	"google.golang.org/grpc"
 )
 
 var (
 	grpcAddr = env.GetString("GRPC_ADDR", ":9093")
+	osrmURL  = env.GetString("OSRM_BASE_URL", "")
 )
 
 func main() {
 	log.Println("--- Trip Service Initializing... ---")
 	inmemRepo := tripdb.NewInmemRepository()
-	svc := tripservice.NewService(inmemRepo)
+	routeProvider := osrm.NewClient(http.DefaultClient, osrmURL)
+	svc := tripdomain.NewTripBusiness(inmemRepo, routeProvider)
 
 	listener, err := net.Listen("tcp", grpcAddr)
 	if err != nil {

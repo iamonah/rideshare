@@ -1,4 +1,4 @@
-package apigateway
+package websockettransport
 
 import (
 	"encoding/json"
@@ -11,37 +11,15 @@ import (
 	"github.com/iamonah/rideshare/shared/util"
 )
 
-type PackageSlug string
-
-var PackageSlugs = make(map[string]PackageSlug)
-
-func newPackageSlug(s string) PackageSlug {
-	ps := PackageSlug(s)
-	PackageSlugs[strings.ToLower(s)] = ps
-	return ps
+var websocketUpgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
 }
 
-var (
-	packageSlugVan    = newPackageSlug("van")
-	PackageSlugSUV    = newPackageSlug("suv")
-	PackageSlugSedan  = newPackageSlug("sedan")
-	PackageSlugLuxury = newPackageSlug("luxury")
-)
-
-func parsePackageSlug(s string) (PackageSlug, bool) {
-	ps, ok := PackageSlugs[strings.ToLower(s)]
-	return ps, ok
-}
-
-var (
-	websocketUpgrader = websocket.Upgrader{
-		ReadBufferSize:  1024,
-		WriteBufferSize: 1024,
-		CheckOrigin: func(r *http.Request) bool {
-			return true
-		},
-	}
-)
+type Handler struct{}
 
 type Message struct {
 	Type    string          `json:"type"`
@@ -55,6 +33,27 @@ type Client struct {
 	ID      string
 	Message Message
 	Egress  chan []byte
+}
+
+type PackageSlug string
+
+var packageSlugs = map[string]PackageSlug{
+	"van":    "van",
+	"suv":    "suv",
+	"sedan":  "sedan",
+	"luxury": "luxury",
+}
+
+type Driver struct {
+	ID             string      `json:"id"`
+	Name           string      `json:"name"`
+	ProfilePicture string      `json:"profilePicture"`
+	CarPlate       string      `json:"carPlate"`
+	PackageSlug    PackageSlug `json:"packageSlug"`
+}
+
+func NewHandler() *Handler {
+	return &Handler{}
 }
 
 func (c *Client) ReadMessage() {
@@ -73,15 +72,12 @@ func (c *Client) ReadMessage() {
 			continue
 		}
 
-		//send to the route handler
-
 		c.Egress <- data
 	}
 }
 
-func (c *Client) WriteMessage() {
+func (c *Client) WriteMessage() {}
 
-}
 func NewClient(conn *websocket.Conn, id string) *Client {
 	return &Client{
 		Conn:   conn,
@@ -89,14 +85,14 @@ func NewClient(conn *websocket.Conn, id string) *Client {
 		Egress: make(chan []byte),
 	}
 }
-func (h *HandlerApiGateway)HandleDriversWebsocket(w http.ResponseWriter, r *http.Request) {
+
+func (h *Handler) HandleDriversWebsocket(w http.ResponseWriter, r *http.Request) {
 	userID := r.URL.Query().Get("userID")
 	if userID == "" {
 		log.Println("Missing userID in query parameters")
 		return
 	}
 
-	//
 	packageSlug := r.URL.Query().Get("packageSlug")
 	slug, ok := parsePackageSlug(packageSlug)
 	if !ok {
@@ -120,9 +116,7 @@ func (h *HandlerApiGateway)HandleDriversWebsocket(w http.ResponseWriter, r *http
 			PackageSlug:    slug,
 		},
 	}
-	// client := NewClient(conn, userID)
-	// go client.ReadMessage()
-	// go client.WriteMessage()
+
 	if err := conn.WriteJSON(msg); err != nil {
 		log.Printf("Failed to send registration message to driver %s: %v", userID, err)
 		conn.Close()
@@ -130,7 +124,7 @@ func (h *HandlerApiGateway)HandleDriversWebsocket(w http.ResponseWriter, r *http
 	}
 }
 
-func (h *HandlerApiGateway)HandleRidersWebsocket(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) HandleRidersWebsocket(w http.ResponseWriter, r *http.Request) {
 	userID := r.URL.Query().Get("userID")
 	if userID == "" {
 		log.Println("Missing userID in query parameters")
@@ -148,10 +142,7 @@ func (h *HandlerApiGateway)HandleRidersWebsocket(w http.ResponseWriter, r *http.
 	go client.WriteMessage()
 }
 
-type Driver struct {
-	ID             string      `json:"id"`
-	Name           string      `json:"name"`
-	ProfilePicture string      `json:"profilePicture"`
-	CarPlate       string      `json:"carPlate"`
-	PackageSlug    PackageSlug `json:"packageSlug"`
+func parsePackageSlug(s string) (PackageSlug, bool) {
+	slug, ok := packageSlugs[strings.ToLower(strings.TrimSpace(s))]
+	return slug, ok
 }
