@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 
 	apptrip "github.com/iamonah/rideshare/services/apigateway/internal/app/trip"
 	"github.com/iamonah/rideshare/shared/proto/pb/trippb"
@@ -33,8 +34,11 @@ func NewClient(url string, opts ...grpc.DialOption) (*Client, error) {
 }
 
 func (c *Client) PreviewTrip(ctx context.Context, input apptrip.PreviewTripInput) (*apptrip.PreviewTripOutput, error) {
-	resp, err := c.client.PreviewTrip(ctx, toPreviewTripProto(input))
+	req := toPreviewTripProto(input)
+
+	resp, err := c.client.PreviewTrip(ctx, req)
 	if err != nil {
+		log.Printf("trip gRPC PreviewTrip failed: %v", err)
 		return nil, err
 	}
 

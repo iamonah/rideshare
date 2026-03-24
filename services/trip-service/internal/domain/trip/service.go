@@ -6,7 +6,13 @@ import (
 	"github.com/iamonah/rideshare/shared/types"
 )
 
+type PreviewTripResult struct {
+	Route *Route
+	Fares []*RideFare
+}
+
 type ExtTripBusiness interface {
+	PreviewTrip(ctx context.Context, pickup, destination *types.Coordinate, userID string) (*PreviewTripResult, error)
 	CreateTrip(ctx context.Context, fare *RideFare) (*Trip, error)
 	GetRoute(ctx context.Context, pickup, destination *types.Coordinate) (*Route, error)
 	EstimatePackagesWithRoutes(ctx context.Context, route Route) []*RideFare

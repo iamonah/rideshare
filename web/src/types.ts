@@ -44,11 +44,11 @@ export interface RouteFare {
 
 
 export interface HTTPTripStartResponse {
-    tripID: string;
+    tripId: string;
 }
 
 export interface TripPreview {
-    tripID: string,
+    tripId: string,
     route: [number, number][],
     rideFares: RouteFare[],
     duration: number,

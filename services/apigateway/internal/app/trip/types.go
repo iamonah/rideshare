@@ -3,7 +3,7 @@ package trip
 import "github.com/iamonah/rideshare/shared/types"
 
 type PreviewTripInput struct {
-	UserID      string           `json:"userID" validate:"required"`
+	UserID      string           `json:"userId" validate:"required"`
 	Pickup      types.Coordinate `json:"pickup" validate:"required"`
 	Destination types.Coordinate `json:"destination" validate:"required"`
 }

@@ -12,7 +12,7 @@ func (e ErrCode) String() string {
 	if name, ok := codeNames[e]; ok {
 		return name
 	}
-	return "unknown_error"
+	return "UNKNOWN_ERROR"
 }
 
 func (e ErrCode) HTTPStatus() int {
@@ -67,26 +67,26 @@ const (
 )
 
 var codeNames = map[ErrCode]string{
-	None:               "ok",
-	NoContent:          "no_content",
-	Canceled:           "canceled",
-	Unknown:            "unknown",
-	InvalidArgument:    "invalid_argument",
-	DeadlineExceeded:   "deadline_exceeded",
-	NotFound:           "not_found",
-	AlreadyExists:      "already_exists",
-	PermissionDenied:   "permission_denied",
-	ResourceExhausted:  "resource_exhausted",
-	FailedPrecondition: "failed_precondition",
-	Aborted:            "aborted",
-	OutOfRange:         "out_of_range",
-	Unimplemented:      "unimplemented",
-	Internal:           "internal",
-	Unavailable:        "unavailable",
-	DataLoss:           "data_loss",
-	Unauthenticated:    "unauthenticated",
-	TooManyRequests:    "too_many_requests",
-	InternalOnlyLog:    "internal_only_log",
+	None:               "OK",
+	NoContent:          "NO_CONTENT",
+	Canceled:           "CANCELED",
+	Unknown:            "UNKNOWN",
+	InvalidArgument:    "INVALID_ARGUMENT",
+	DeadlineExceeded:   "DEADLINE_EXCEEDED",
+	NotFound:           "NOT_FOUND",
+	AlreadyExists:      "ALREADY_EXISTS",
+	PermissionDenied:   "PERMISSION_DENIED",
+	ResourceExhausted:  "RESOURCE_EXHAUSTED",
+	FailedPrecondition: "FAILED_PRECONDITION",
+	Aborted:            "ABORTED",
+	OutOfRange:         "OUT_OF_RANGE",
+	Unimplemented:      "UNIMPLEMENTED",
+	Internal:           "INTERNAL",
+	Unavailable:        "UNAVAILABLE",
+	DataLoss:           "DATA_LOSS",
+	Unauthenticated:    "UNAUTHENTICATED",
+	TooManyRequests:    "TOO_MANY_REQUESTS",
+	InternalOnlyLog:    "INTERNAL_ONLY_LOG",
 }
 
 var httpStatusByCode = map[ErrCode]int{

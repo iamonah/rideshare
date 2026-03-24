@@ -19,7 +19,7 @@ type TripService struct {
 }
 
 type previewTripInput struct {
-	UserID      string            `json:"user_id" validate:"required"`
+	UserID      string            `json:"userId" validate:"required"`
 	Pickup      *types.Coordinate `json:"pickup" validate:"required"`
 	Destination *types.Coordinate `json:"destination" validate:"required"`
 }
@@ -60,24 +60,25 @@ func (s *TripService) PreviewTrip(ctx context.Context, req *trippb.PreviewTripRe
 		return nil, grpcerrs.ToStatus(errs.New(errs.InvalidArgument, err))
 	}
 
-	route, err := s.trips.GetRoute(ctx, input.Pickup, input.Destination)
+	preview, err := s.trips.PreviewTrip(ctx, input.Pickup, input.Destination, input.UserID)
 	if err != nil {
 		return nil, grpcerrs.ToStatus(err)
 	}
-	protoRoute, err := toProto(*route)
+
+	protoRoute, err := toProto(*preview.Route)
 	if err != nil {
 		return nil, grpcerrs.ToStatus(err)
 	}
 
 	return &trippb.PreviewTripResponse{
 		Route:     protoRoute,
-		RideFares: []*trippb.RideFare{},
+		RideFares: faresToProto(preview.Fares),
 	}, nil
 }
 
 type createTripInput struct {
-	RideFareID string `json:"ride_fare_id" validate:"required"`
-	UserID     string `json:"user_id" validate:"required"`
+	RideFareID string `json:"rideFareId" validate:"required"`
+	UserID     string `json:"userId" validate:"required"`
 }
 
 func (s *TripService) CreateTrip(ctx context.Context, req *trippb.CreateTripRequest) (
@@ -97,7 +98,7 @@ func (s *TripService) CreateTrip(ctx context.Context, req *trippb.CreateTripRequ
 
 	rideFareID, err := bson.ObjectIDFromHex(input.RideFareID)
 	if err != nil {
-		return nil, grpcerrs.ToStatus(errs.New(errs.InvalidArgument, errors.New("ride_fare_id must be a valid id")))
+		return nil, grpcerrs.ToStatus(errs.New(errs.InvalidArgument, errors.New("rideFareId must be a valid id")))
 	}
 
 	createTrip, err := s.trips.CreateTrip(ctx, &tripdomain.RideFare{

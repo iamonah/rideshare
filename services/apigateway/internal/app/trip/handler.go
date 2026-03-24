@@ -43,7 +43,6 @@ func (h *Handler) HandlePreview(w http.ResponseWriter, r *http.Request) {
 
 	body, err := h.upstream.PreviewTrip(ctx, reqBody)
 	if err != nil {
-		log.Printf("failed to preview a trip: %v", err)
 		if writeErr := httpcommon.WriteUpstreamGRPCError(w, "trip service", err); writeErr != nil {
 			log.Printf("failed to write preview trip upstream error response: %v", writeErr)
 		}

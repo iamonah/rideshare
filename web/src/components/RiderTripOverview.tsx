@@ -136,7 +136,7 @@ export const RiderTripOverview = ({
     )
   }
 
-  if (trip.rideFares && trip.rideFares.length >= 0 && !trip.tripID) {
+  if (trip.rideFares && trip.rideFares.length >= 0 && !trip.tripId) {
     return (
       <DriverList
         trip={trip}

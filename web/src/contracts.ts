@@ -91,12 +91,12 @@ export interface HTTPTripPreviewResponse {
 }
 
 export interface HTTPTripStartRequestPayload {
-  rideFareID: string;
-  userID: string;
+  rideFareId: string;
+  userId: string;
 }
 
 export interface HTTPTripPreviewRequestPayload {
-  userID: string;
+  userId: string;
   pickup: Coordinate;
   destination: Coordinate;
 }

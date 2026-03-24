@@ -33,12 +33,12 @@ func ToStatus(err error) error {
 
 func clientMessage(appErr *sharederrs.AppError) string {
 	if appErr == nil {
-		return "internal service error"
+		return "Service temporarily unavailable, please try again later"
 	}
 
 	switch appErr.Code {
-	case sharederrs.Internal, sharederrs.Unknown, sharederrs.DataLoss, sharederrs.InternalOnlyLog:
-		return "internal service error"
+	case sharederrs.Internal, sharederrs.Unknown, sharederrs.DataLoss, sharederrs.InternalOnlyLog, sharederrs.Unavailable:
+		return "Service temporarily unavailable, please try again later"
 	default:
 		return appErr.Error()
 	}

@@ -14,6 +14,9 @@ func toProto(routeResp tripdomain.Route) (*trippb.Route, error) {
 	}
 
 	route := routeResp.Routes[0]
+	if len(route.Geometry.Coordinates) == 0 {
+		return nil, errs.New(errs.Unavailable, errors.New("route service temporarily unavailable"))
+	}
 	geometry, err := mapOSRMGeometry(route.Geometry.Coordinates)
 	if err != nil {
 		return nil, err
@@ -27,9 +30,6 @@ func toProto(routeResp tripdomain.Route) (*trippb.Route, error) {
 }
 
 func mapOSRMGeometry(coords [][]float64) ([]*trippb.Geometry, error) {
-	if len(coords) == 0 {
-		return nil, errs.New(errs.Unavailable, errors.New("route service temporarily unavailable"))
-	}
 	grpcCoords := make([]*trippb.Coordinate, 0, len(coords))
 	for _, pair := range coords {
 		if len(pair) != 2 {
@@ -44,4 +44,18 @@ func mapOSRMGeometry(coords [][]float64) ([]*trippb.Geometry, error) {
 	return []*trippb.Geometry{
 		{Coordinates: grpcCoords},
 	}, nil
+}
+
+func faresToProto(fares []*tripdomain.RideFare) []*trippb.RideFare {
+	protoFares := make([]*trippb.RideFare, len(fares))
+	for i, f := range fares {
+		protoFares[i] = &trippb.RideFare{
+			UserId:            f.UserID,
+			Id:                f.ID.Hex(),
+			PackageSlug:       f.PackageSlug,
+			TotalPriceInCents: f.TotalPriceInCents,
+		}
+	}
+
+	return protoFares
 }
