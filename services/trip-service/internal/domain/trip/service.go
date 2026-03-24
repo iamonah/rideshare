@@ -9,8 +9,8 @@ import (
 type ExtTripBusiness interface {
 	CreateTrip(ctx context.Context, fare *RideFare) (*Trip, error)
 	GetRoute(ctx context.Context, pickup, destination *types.Coordinate) (*Route, error)
-	EstimatePackagesWithRoutes(ctx context.Context, route Route) ([]*RideFare, error)
-	GenerateTripFare(ctx context.Context, fare []*RideFare, userID string) ([]*RideFare, error)
+	EstimatePackagesWithRoutes(ctx context.Context, route Route) []*RideFare
+	GenerateTripFares(ctx context.Context, fare []*RideFare, userID string) ([]*RideFare, error)
 }
 
 type RouteProvider interface {

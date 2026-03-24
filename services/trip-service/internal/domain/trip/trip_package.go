@@ -15,6 +15,9 @@ func newPackageSlug(s string) PackageSlug {
 	packageSlugs[strings.ToLower(s)] = ps
 	return ps
 }
+func (p PackageSlug) String() string {
+	return string(p)
+}
 
 var (
 	PackageSlugVan    = newPackageSlug("van")
