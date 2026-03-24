@@ -31,9 +31,10 @@ const startLocationMarker = new L.Icon({
 });
 
 const destinationMarker = new L.Icon({
-  iconUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ed/Map_pin_icon.svg/176px-Map_pin_icon.svg.png",
-  iconSize: [40, 40], // Size of the marker
-  iconAnchor: [20, 40], // Anchor point
+  iconUrl: "/markers/location-pin.svg",
+  iconSize: [40, 40],
+  iconAnchor: [20, 40],
+  popupAnchor: [0, -36],
 });
 
 export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
@@ -107,7 +108,7 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
 
   const parsedRoute = useMemo(() =>
     requestedTrip?.route?.geometry[0]?.coordinates
-      .map((coord) => [coord?.longitude, coord?.latitude] as [number, number])
+      .map((coord) => [coord?.latitude, coord?.longitude] as [number, number])
     , [requestedTrip])
 
   // destination is the last coordinate in the route
@@ -151,13 +152,13 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
           </Marker>
 
           {startLocation && (
-            <Marker position={[startLocation.longitude, startLocation.latitude]} icon={startLocationMarker}>
+            <Marker position={[startLocation.latitude, startLocation.longitude]} icon={startLocationMarker}>
               <Popup>Start Location</Popup>
             </Marker>
           )}
 
           {destination && (
-            <Marker position={[destination.longitude, destination.latitude]} icon={destinationMarker}>
+            <Marker position={[destination.latitude, destination.longitude]} icon={destinationMarker}>
               <Popup>Destination</Popup>
             </Marker>
           )}

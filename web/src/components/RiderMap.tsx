@@ -15,9 +15,10 @@ import { RiderTripOverview } from './RiderTripOverview';
 import { BackendEndpoints, HTTPTripPreviewRequestPayload, HTTPTripPreviewResponse, HTTPTripStartRequestPayload } from '../contracts';
 
 const userMarker = new L.Icon({
-    iconUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ed/Map_pin_icon.svg/176px-Map_pin_icon.svg.png",
-    iconSize: [40, 40], // Size of the marker
-    iconAnchor: [20, 40], // Anchor point
+    iconUrl: "/markers/location-pin.svg",
+    iconSize: [40, 40],
+    iconAnchor: [20, 40],
+    popupAnchor: [0, -36],
 });
 
 const driverMarker = new L.Icon({
@@ -73,7 +74,7 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
             console.log(data)
 
             const parsedRoute = data.route.geometry[0].coordinates
-                .map((coord) => [coord.longitude, coord.latitude] as [number, number])
+                .map((coord) => [coord.latitude, coord.longitude] as [number, number])
 
             setTrip({
                 tripId: "",
