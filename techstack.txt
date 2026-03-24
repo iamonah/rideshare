@@ -9,3 +9,39 @@ Mongodb
 Jaeger
 Typescript
 opensourceroutingmachine
+
+Our proto field names stay in snake_case, because that is standard protobuf style. When those messages are 
+exposed as JSON, protobuf maps them to camelCase by default. We should treat those camelCase names as the 
+canonical client-facing field names, and keep our Go json tags, 
+gateway payloads, and validation error field paths aligned with them.
+thinking the ddd way
+internal/
+├── app/
+│   └── trip/
+│       ├── create_trip.go
+│       ├── get_trip.go
+│       ├── cancel_trip.go
+│       ├── estimate_fare.go
+│       └── assign_driver.go
+├── domain/
+│   ├── trip/
+│   │   ├── trip.go
+│   │   ├── status.go
+│   │   ├── repository.go
+│   │   └── rules.go
+│   ├── pricing/
+│   │   ├── fare.go
+│   │   ├── calculator.go
+│   │   └── policy.go
+│   ├── dispatch/
+│   │   ├── assignment.go
+│   │   ├── matcher.go
+│   │   └── availability.go
+│   └── routing/
+│       ├── route.go
+│       ├── geometry.go
+│       └── provider.go
+└── infra/
+    ├── grpc/
+    ├── external/
+    └── tripdb/
