@@ -11,10 +11,7 @@ import (
 	"syscall"
 	"time"
 
-	appdriver "github.com/iamonah/rideshare/services/apigateway/internal/app/driver"
-	apppayment "github.com/iamonah/rideshare/services/apigateway/internal/app/payment"
-	apptrip "github.com/iamonah/rideshare/services/apigateway/internal/app/trip"
-	tripgrpc "github.com/iamonah/rideshare/services/apigateway/internal/infra/tripgrpc"
+	tripclient "github.com/iamonah/rideshare/services/apigateway/internal/infra/client"
 	httptransport "github.com/iamonah/rideshare/services/apigateway/internal/transport/http"
 	websockettransport "github.com/iamonah/rideshare/services/apigateway/internal/transport/websocket"
 	"github.com/iamonah/rideshare/shared/env"
@@ -35,15 +32,12 @@ func main() {
 	}
 
 	log.Printf("Trip gRPC client initialized for %s (non-blocking dial)", tripServiceAddr)
-	tripClient, err := tripgrpc.NewClient(tripServiceAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	tripClient, err := tripclient.NewClient(tripServiceAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("Failed to create gRPC client: %v", err)
 	}
 	defer tripClient.Close()
 
-	tripService := apptrip.NewService(tripClient)
-	driverService := appdriver.NewService()
-	paymentService := apppayment.NewService()
 	websocketHandler := websockettransport.NewHandler()
 
 	log.Println("Listening on", httpAddr)
@@ -51,9 +45,7 @@ func main() {
 	server := &http.Server{
 		Addr: httpAddr,
 		Handler: httptransport.NewRouter(httptransport.Dependencies{
-			Trips:      tripService,
-			Drivers:    driverService,
-			Payments:   paymentService,
+			Trips:      tripClient,
 			Websockets: websocketHandler,
 		}),
 	}

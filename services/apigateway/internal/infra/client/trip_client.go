@@ -1,4 +1,4 @@
-package tripgrpc
+package client
 
 import (
 	"context"

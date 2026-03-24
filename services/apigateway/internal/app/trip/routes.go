@@ -1,4 +1,4 @@
-package triphttp
+package trip
 
 import (
 	"net/http"

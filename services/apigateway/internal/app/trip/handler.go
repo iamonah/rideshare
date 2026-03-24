@@ -1,4 +1,4 @@
-package triphttp
+package trip
 
 import (
 	"context"
@@ -8,22 +8,21 @@ import (
 	"net/http"
 	"time"
 
-	apptrip "github.com/iamonah/rideshare/services/apigateway/internal/app/trip"
 	httpcommon "github.com/iamonah/rideshare/services/apigateway/internal/transport/http/common"
 	"github.com/iamonah/rideshare/shared/contracts"
 	"github.com/iamonah/rideshare/shared/errs"
 )
 
 type Handler struct {
-	trips *apptrip.Service
+	upstream PreviewTripUpstream
 }
 
-func NewHandler(trips *apptrip.Service) *Handler {
-	return &Handler{trips: trips}
+func NewHandler(upstream PreviewTripUpstream) *Handler {
+	return &Handler{upstream: upstream}
 }
 
 func (h *Handler) HandlePreview(w http.ResponseWriter, r *http.Request) {
-	var reqBody apptrip.PreviewTripInput
+	var reqBody PreviewTripInput
 	if err := httpcommon.ReadJSON(r, &reqBody); err != nil {
 		if writeErr := httpcommon.WriteAPIError(w, errs.New(errs.InvalidArgument, errors.New("failed to parse JSON data"))); writeErr != nil {
 			log.Printf("failed to write preview trip invalid JSON response: %v", writeErr)
@@ -42,7 +41,7 @@ func (h *Handler) HandlePreview(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 	defer cancel()
 
-	body, err := h.trips.PreviewTrip(ctx, reqBody)
+	body, err := h.upstream.PreviewTrip(ctx, reqBody)
 	if err != nil {
 		log.Printf("failed to preview a trip: %v", err)
 		if writeErr := httpcommon.WriteUpstreamGRPCError(w, "trip service", err); writeErr != nil {
