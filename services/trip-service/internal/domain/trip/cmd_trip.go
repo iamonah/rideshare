@@ -31,7 +31,7 @@ func (s *TripBusiness) PreviewTrip(ctx context.Context, pickup, destination *typ
 	}
 
 	estimatedFares := s.EstimatePackagesWithRoutes(ctx, *route)
-	fares, err := s.GenerateTripFares(ctx, estimatedFares, userID)
+	fares, err := s.GenerateTripFares(ctx, estimatedFares, userID, &route.Routes[0])
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +67,7 @@ func (s *TripBusiness) EstimatePackagesWithRoutes(ctx context.Context, route Rou
 	return estimatedFares
 }
 
-func (s *TripBusiness) GenerateTripFares(ctx context.Context, rideFares []*RideFare, userID string) ([]*RideFare, error) {
+func (s *TripBusiness) GenerateTripFares(ctx context.Context, rideFares []*RideFare, userID string, route *RouteSummary) ([]*RideFare, error) {
 	_ = ctx
 
 	fares := make([]*RideFare, 0, len(rideFares))
@@ -80,6 +80,7 @@ func (s *TripBusiness) GenerateTripFares(ctx context.Context, rideFares []*RideF
 			ID:                id,
 			TotalPriceInCents: f.TotalPriceInCents,
 			PackageSlug:       f.PackageSlug,
+			Route:             route,
 		}
 
 		fares = append(fares, fare)
@@ -111,19 +112,19 @@ func estimateFareRoute(f *RideFare, route *Route) *RideFare {
 func getBaseFares() []*RideFare {
 	return []*RideFare{
 		{
-			PackageSlug:       PackageSlugSUV.String(),
+			PackageSlug:       PackageSlugSUV,
 			TotalPriceInCents: 200,
 		},
 		{
-			PackageSlug:       PackageSlugSedan.String(),
+			PackageSlug:       PackageSlugSedan,
 			TotalPriceInCents: 350,
 		},
 		{
-			PackageSlug:       PackageSlugVan.String(),
+			PackageSlug:       PackageSlugVan,
 			TotalPriceInCents: 400,
 		},
 		{
-			PackageSlug:       PackageSlugLuxury.String(),
+			PackageSlug:       PackageSlugLuxury,
 			TotalPriceInCents: 1000,
 		},
 	}

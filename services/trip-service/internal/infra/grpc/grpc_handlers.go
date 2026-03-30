@@ -84,7 +84,7 @@ type createTripInput struct {
 func (s *TripService) CreateTrip(ctx context.Context, req *trippb.CreateTripRequest) (
 	*trippb.CreateTripResponse, error) {
 	if req == nil {
-		return nil, grpcerrs.ToStatus(errs.New(errs.InvalidArgument, errors.New("request is required")))
+		return nil, grpcerrs.ToStatus(errs.New(errs.InvalidArgument, errors.New("invalid request")))
 	}
 
 	input := createTripInput{
@@ -101,15 +101,13 @@ func (s *TripService) CreateTrip(ctx context.Context, req *trippb.CreateTripRequ
 		return nil, grpcerrs.ToStatus(errs.New(errs.InvalidArgument, errors.New("rideFareId must be a valid id")))
 	}
 
-	createTrip, err := s.trips.CreateTrip(ctx, &tripdomain.RideFare{
-		ID:     rideFareID,
-		UserID: input.UserID,
-	})
+	trip, err := s.trips.CreateTrip(ctx, input.UserID, rideFareID)
 	if err != nil {
 		return nil, grpcerrs.ToStatus(err)
 	}
 
 	return &trippb.CreateTripResponse{
-		TripId: createTrip.ID.Hex(),
+		TripId: trip.ID.Hex(),
+		Trip:   toProtoTrip(trip),
 	}, nil
 }

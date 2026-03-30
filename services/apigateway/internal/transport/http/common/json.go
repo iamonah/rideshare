@@ -33,10 +33,7 @@ func WriteJSON(w http.ResponseWriter, status int, data any) error {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-
-	if _, err := w.Write(append(payload, '\n')); err != nil {
-		return fmt.Errorf("failed to write JSON response: %w", err)
-	}
+	w.Write(append(payload, '\n'))
 
 	return nil
 }
@@ -47,10 +44,7 @@ func writeFallbackInternalError(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusInternalServerError)
 
-	if _, err := w.Write(fallbackPayload); err != nil {
-		return fmt.Errorf("failed to write fallback JSON response: %w", err)
-	}
-
+	w.Write(fallbackPayload)
 	return nil
 }
 

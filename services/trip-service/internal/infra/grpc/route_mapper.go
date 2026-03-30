@@ -52,10 +52,31 @@ func faresToProto(fares []*tripdomain.RideFare) []*trippb.RideFare {
 		protoFares[i] = &trippb.RideFare{
 			UserId:            f.UserID,
 			Id:                f.ID.Hex(),
-			PackageSlug:       f.PackageSlug,
+			PackageSlug:       f.PackageSlug.String(),
 			TotalPriceInCents: f.TotalPriceInCents,
 		}
 	}
 
 	return protoFares
+}
+
+func toProtoTrip(trip *tripdomain.Trip) *trippb.Trip {
+	if trip == nil {
+		return nil
+	}
+
+	protoTrip := &trippb.Trip{
+		Id:     trip.ID.Hex(),
+		UserId: trip.UserID,
+		Status: trip.Status,
+		SelectedFare: &trippb.RideFare{
+			Id: trip.RideFare.ID.Hex(),
+			UserId: trip.RideFare.UserID,
+			PackageSlug: trip.RideFare.PackageSlug.String(),
+			TotalPriceInCents: trip.RideFare.TotalPriceInCents,
+
+		},
+	}
+
+	return protoTrip
 }
