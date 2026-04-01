@@ -91,3 +91,92 @@ Or open the Minikube dashboard:
 ```bash
 minikube dashboard
 ```
+
+## Production Deployment Example (Google Cloud)
+
+This section describes a manual deployment flow to Google Cloud. It is best used as a reference before formalizing the process in CI/CD.
+
+### 1. Set environment variables
+
+```bash
+export REGION="europe-west1"
+export PROJECT_ID="<your-gcp-project-id>"
+```
+
+### 2. Build production images
+
+The production Dockerfiles currently present in this repository are:
+
+```bash
+docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/ride-sharing/api-gateway:latest --platform linux/amd64 -f infra/deploy/production/docker/api-gateway.Dockerfile .
+docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/ride-sharing/trip-service:latest --platform linux/amd64 -f infra/deploy/production/docker/trip-service.Dockerfile .
+```
+
+### 3. Create an Artifact Registry repository
+
+Create a Docker repository in Google Cloud Artifact Registry to store the built images.
+
+### 4. Push the images
+
+```bash
+docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/ride-sharing/api-gateway:latest
+docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/ride-sharing/trip-service:latest
+```
+
+If authentication fails:
+
+1. Run `gcloud auth login` and select the correct project.
+2. Configure Docker authentication:
+
+```bash
+gcloud auth configure-docker ${REGION}-docker.pkg.dev
+```
+
+### 5. Create a GKE cluster
+
+Create a Google Kubernetes Engine cluster either through the `gcloud` CLI or the Google Cloud Console.
+
+### 6. Connect to the cluster
+
+```bash
+gcloud container clusters get-credentials ride-sharing --region ${REGION} --project ${PROJECT_ID}
+```
+
+### 7. Update image references in the manifests
+
+The production manifests under `infra/deploy/production/k8s` use `{{PROJECT_ID}}` placeholders. Replace those placeholders before applying the manifests.
+
+### 8. Apply the manifests
+
+```bash
+kubectl apply -f infra/deploy/production/k8s/app-config.yaml
+kubectl apply -f infra/deploy/production/k8s/trip-service-deployment.yaml
+kubectl apply -f infra/deploy/production/k8s/api-gateway-deployment.yaml
+```
+
+For redeployments:
+
+```bash
+kubectl apply -f infra/deploy/production/k8s
+kubectl rollout restart deployment
+```
+
+### 9. Verify service exposure
+
+Retrieve the external address for the API gateway:
+
+```bash
+kubectl get services
+```
+
+To switch back to your local Kubernetes context:
+
+```bash
+kubectl config get-contexts
+
+# Docker Desktop
+kubectl config use-context docker-desktop
+
+# Minikube
+kubectl config use-context minikube
+```
