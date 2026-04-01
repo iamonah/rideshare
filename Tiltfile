@@ -12,8 +12,6 @@ k8s_yaml('./infra/deploy/development/k8s/app-config.yaml')
 ### API Gateway ###
 
 gateway_compile_cmd = 'mkdir -p build && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o build/api-gateway ./services/apigateway/cmd/main.go'
-if os.name == 'nt':
-  gateway_compile_cmd = './infra/deploy/development/docker/api-gateway-build.sh'
 
 local_resource(
   'api-gateway-compile',
@@ -45,8 +43,6 @@ k8s_resource('api-gateway', port_forwards=8081,
 # Uncomment once we have a trip service
 
 trip_compile_cmd = 'mkdir -p build && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o build/trip-service ./services/trip-service/cmd/main.go'
-if os.name == 'nt':
-  trip_compile_cmd = './infra/deploy/development/docker/trip-build.sh'
 
 local_resource(
   'trip-service-compile',
@@ -75,8 +71,6 @@ k8s_resource('trip-service', resource_deps=['trip-service-compile'], labels=["se
 ### Driver Service ###
 
 driver_compile_cmd = 'mkdir -p build && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o build/driver-service ./services/driver-service/cmd'
-if os.name == 'nt':
-  driver_compile_cmd = './infra/deploy/development/docker/driver-build.sh'
 
 local_resource(
   'driver-service-compile',
