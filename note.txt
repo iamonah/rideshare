@@ -1,0 +1,18 @@
+Rule of thumb
+
+Use protobuf generated types at the transport boundary:
+
+gRPC handlers
+gRPC clients
+mapping layer
+
+Use your own types in the core/service/domain/storage layers.
+
+So:
+
+incoming proto -> map to internal type
+internal type -> business logic
+internal type -> persistence
+internal type -> outgoing proto when needed
+
+That separation gives you much more control.
