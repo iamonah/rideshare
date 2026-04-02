@@ -100,6 +100,7 @@ func (h *Handler) HandleDriversWebsocket(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+
 	conn, err := websocketUpgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println("Websocket upgrade error:", err)
