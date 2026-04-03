@@ -35,6 +35,14 @@ type Client struct {
 	Egress  chan []byte
 }
 
+func NewClient(conn *websocket.Conn, id string) *Client {
+	return &Client{
+		Conn:   conn,
+		ID:     id,
+		Egress: make(chan []byte),
+	}
+}
+
 type PackageSlug string
 
 var packageSlugs = map[string]PackageSlug{
@@ -72,19 +80,11 @@ func (c *Client) ReadMessage() {
 			continue
 		}
 
-		c.Egress <- data
+		//handle message based on req.Type
 	}
 }
 
 func (c *Client) WriteMessage() {}
-
-func NewClient(conn *websocket.Conn, id string) *Client {
-	return &Client{
-		Conn:   conn,
-		ID:     id,
-		Egress: make(chan []byte),
-	}
-}
 
 func (h *Handler) HandleDriversWebsocket(w http.ResponseWriter, r *http.Request) {
 	userID := r.URL.Query().Get("userID")
@@ -99,7 +99,6 @@ func (h *Handler) HandleDriversWebsocket(w http.ResponseWriter, r *http.Request)
 		log.Printf("Invalid packageSlug '%s' in query parameters", packageSlug)
 		return
 	}
-
 
 	conn, err := websocketUpgrader.Upgrade(w, r, nil)
 	if err != nil {

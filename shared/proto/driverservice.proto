@@ -3,3 +3,35 @@ syntax = "proto3";
 package rideshare.driver.v1;
 
 option go_package="github.com/iamonah/rideshare/shared/proto/pb/driverpb;driverpb";
+
+// DriverService manages driver registrations and information.
+service DriverService {
+    // RegisterDriver registers a driver for a specific package.
+  rpc RegisterDriver(RegisterDriverRequest) returns (RegisterDriverResponse);
+  // UnregisterDriver removes a driver registration.
+  rpc UnregisterDriver(RegisterDriverRequest) returns (RegisterDriverResponse);
+}
+
+message RegisterDriverRequest {
+  string driver_id = 1;
+  string package_slug = 2;
+}
+
+message RegisterDriverResponse {
+  Driver driver = 1;
+}
+
+message Driver {
+  string id = 1;
+  string name = 2;
+  string profile_picture = 3;
+  string car_plate = 4;
+  string geo_hash = 5;
+  string package_slug = 6;
+  Location location = 7;
+}
+
+message Location {
+  double latitude = 1;
+  double longitude = 2;
+}
