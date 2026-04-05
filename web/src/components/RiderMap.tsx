@@ -33,6 +33,7 @@ interface RiderMapProps {
 
 export default function RiderMap({ onRouteSelected }: RiderMapProps) {
     const [trip, setTrip] = useState<TripPreview | null>(null)
+    const [previewError, setPreviewError] = useState<string | null>(null)
     const [selectedCarPackage] = useState<RouteFare | null>(null)
     const [destination, setDestination] = useState<[number, number] | null>(null)
     const mapRef = useRef<L.Map>(null)
@@ -66,26 +67,36 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
 
         debounceTimeoutRef.current = setTimeout(async () => {
             setDestination([e.latlng.lat, e.latlng.lng])
+            setPreviewError(null)
 
-            const data = await requestRidePreview({
-                pickup: [location.latitude, location.longitude],
-                destination: [e.latlng.lat, e.latlng.lng],
-            })
-            console.log(data)
+            try {
+                const data = await requestRidePreview({
+                    pickup: [location.latitude, location.longitude],
+                    destination: [e.latlng.lat, e.latlng.lng],
+                })
 
-            const parsedRoute = data.route.geometry[0].coordinates
-                .map((coord) => [coord.latitude, coord.longitude] as [number, number])
+                const routeCoordinates = data.route?.geometry?.[0]?.coordinates
+                if (!routeCoordinates || routeCoordinates.length === 0) {
+                    throw new Error("Route preview is temporarily unavailable")
+                }
 
-            setTrip({
-                tripId: "",
-                route: parsedRoute,
-                rideFares: data.rideFares,
-                distance: data.route.distance,
-                duration: data.route.duration,
-            })
+                const parsedRoute = routeCoordinates
+                    .map((coord) => [coord.latitude, coord.longitude] as [number, number])
 
-            // Call onRouteSelected with the route distance
-            onRouteSelected?.(data.route.distance)
+                setTrip({
+                    tripId: "",
+                    route: parsedRoute,
+                    rideFares: data.rideFares,
+                    distance: data.route.distance,
+                    duration: data.route.duration,
+                })
+
+                onRouteSelected?.(data.route.distance)
+            } catch (err) {
+                const message = err instanceof Error ? err.message : "Unable to preview this trip right now"
+                setTrip(null)
+                setPreviewError(message)
+            }
         }, 500);
     }
 
@@ -105,9 +116,21 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
 
         const response = await fetch(`${API_URL}${BackendEndpoints.PREVIEW_TRIP}`, {
             method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
             body: JSON.stringify(payload),
         })
-        const { data } = await response.json() as { data: HTTPTripPreviewResponse }
+
+        const body = await response.json() as {
+            data?: HTTPTripPreviewResponse
+            error?: { message?: string }
+        }
+        if (!response.ok || !body.data) {
+            throw new Error(body.error?.message || "Unable to preview this trip right now")
+        }
+
+        const { data } = body
         return data
     }
 
@@ -142,6 +165,7 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
     const handleCancelTrip = () => {
         setTrip(null)
         setDestination(null)
+        setPreviewError(null)
         resetTripStatus()
     }
 
@@ -227,6 +251,7 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
             <div className="flex-[0.4]">
                 <RiderTripOverview
                     trip={trip}
+                    previewError={previewError}
                     assignedDriver={assignedDriver}
                     status={tripStatus}
                     paymentSession={paymentSession}

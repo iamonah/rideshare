@@ -49,12 +49,7 @@ func mapOSRMGeometry(coords [][]float64) ([]*trippb.Geometry, error) {
 func faresToProto(fares []*tripdomain.RideFare) []*trippb.RideFare {
 	protoFares := make([]*trippb.RideFare, len(fares))
 	for i, f := range fares {
-		protoFares[i] = &trippb.RideFare{
-			UserId:            f.UserID,
-			Id:                f.ID.Hex(),
-			PackageSlug:       f.PackageSlug.String(),
-			TotalPriceInCents: f.TotalPriceInCents,
-		}
+		protoFares[i] = f.ToProto()
 	}
 
 	return protoFares
@@ -70,11 +65,10 @@ func toProtoTrip(trip *tripdomain.Trip) *trippb.Trip {
 		UserId: trip.UserID,
 		Status: trip.Status,
 		SelectedFare: &trippb.RideFare{
-			Id: trip.RideFare.ID.Hex(),
-			UserId: trip.RideFare.UserID,
-			PackageSlug: trip.RideFare.PackageSlug.String(),
+			Id:                trip.RideFare.ID.Hex(),
+			UserId:            trip.RideFare.UserID,
+			PackageSlug:       trip.RideFare.PackageSlug.String(),
 			TotalPriceInCents: trip.RideFare.TotalPriceInCents,
-
 		},
 	}
 

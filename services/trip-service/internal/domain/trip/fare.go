@@ -26,15 +26,41 @@ type RideFare struct {
 }
 
 func (r *RideFare) ToProto() *trippb.RideFare {
+	if r == nil {
+		return nil
+	}
+
 	return &trippb.RideFare{
 		Id:                r.ID.Hex(),
 		UserId:            r.UserID,
 		PackageSlug:       r.PackageSlug.String(),
 		TotalPriceInCents: r.TotalPriceInCents,
-		Route: &trippb.Route{
-			Distance: r.Route.Distance,
-			Duration: r.Route.Duration,
-			Geometry: r.ToProto().Route.Geometry,
+		Route:             routeSummaryToProto(r.Route),
+	}
+}
+
+func routeSummaryToProto(route *RouteSummary) *trippb.Route {
+	if route == nil {
+		return nil
+	}
+
+	coordinates := make([]*trippb.Coordinate, 0, len(route.Geometry.Coordinates))
+	for _, pair := range route.Geometry.Coordinates {
+		if len(pair) != 2 {
+			continue
+		}
+
+		coordinates = append(coordinates, &trippb.Coordinate{
+			Latitude:  pair[1],
+			Longitude: pair[0],
+		})
+	}
+
+	return &trippb.Route{
+		Distance: route.Distance,
+		Duration: route.Duration,
+		Geometry: []*trippb.Geometry{
+			{Coordinates: coordinates},
 		},
 	}
 }

@@ -29,6 +29,9 @@ func (s *TripBusiness) PreviewTrip(ctx context.Context, pickup, destination *typ
 	if err != nil {
 		return nil, err
 	}
+	if route == nil || len(route.Routes) == 0 {
+		return nil, errs.New(errs.NotFound, errors.New("no route found between pickup and destination"))
+	}
 
 	estimatedFares := s.EstimatePackagesWithRoutes(ctx, *route)
 	fares, err := s.GenerateTripFares(ctx, estimatedFares, userID, &route.Routes[0])

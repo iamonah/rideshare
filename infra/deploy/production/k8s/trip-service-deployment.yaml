@@ -17,6 +17,12 @@ spec:
           image: europe-west1-docker.pkg.dev/notebase-492017/ride-sharing/trip-service
           ports:
             - containerPort: 9093
+          env:
+            - name: OSRM_BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: OSRM_BASE_URL
           resources:
             requests:
               memory: "64Mi"

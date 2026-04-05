@@ -86,6 +86,7 @@ func toPreviewTripOutput(resp *trippb.PreviewTripResponse) *apptrip.PreviewTripO
 			UserID:            fare.GetUserId(),
 			PackageSlug:       fare.GetPackageSlug(),
 			TotalPriceInCents: fare.GetTotalPriceInCents(),
+			Route:             toRoute(fare.GetRoute()),
 		})
 	}
 

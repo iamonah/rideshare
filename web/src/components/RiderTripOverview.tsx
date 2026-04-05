@@ -11,6 +11,7 @@ import { TripEvents, PaymentEventSessionCreatedData } from "../contracts"
 
 interface TripOverviewProps {
   trip: TripPreview | null;
+  previewError?: string | null;
   status: TripEvents | null;
   assignedDriver?: Driver | null;
   paymentSession?: PaymentEventSessionCreatedData | null;
@@ -20,12 +21,26 @@ interface TripOverviewProps {
 
 export const RiderTripOverview = ({
   trip,
+  previewError,
   status,
   assignedDriver,
   paymentSession,
   onPackageSelect,
   onCancel,
 }: TripOverviewProps) => {
+  if (previewError && !trip) {
+    return (
+      <TripOverviewCard
+        title="Trip preview unavailable"
+        description={previewError}
+      >
+        <Button variant="outline" className="w-full" onClick={onCancel}>
+          Clear preview
+        </Button>
+      </TripOverviewCard>
+    )
+  }
+
   if (!trip) {
     return (
       <TripOverviewCard

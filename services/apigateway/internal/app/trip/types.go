@@ -29,4 +29,5 @@ type PreviewRideFare struct {
 	UserID            string  `json:"userId"`
 	PackageSlug       string  `json:"packageSlug"`
 	TotalPriceInCents float64 `json:"totalPriceInCents"`
+	Route             Route   `json:"route"`
 }
