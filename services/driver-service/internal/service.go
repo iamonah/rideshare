@@ -7,56 +7,109 @@ import (
 
 	"github.com/iamonah/rideshare/shared/errs"
 	driverpb "github.com/iamonah/rideshare/shared/proto/pb/driverpb"
-	"google.golang.org/protobuf/proto"
+	"github.com/iamonah/rideshare/shared/util"
+	"github.com/mmcloughlin/geohash"
+
+	mathrand "math/rand/v2"
 )
+
+type driverInMap struct {
+	Driver *driverpb.Driver
+	// Index int
+	// TODO: route
+}
 
 type Service struct {
 	mu      sync.RWMutex
-	drivers map[string]*driverpb.Driver
+	drivers []*driverInMap
 }
 
 func NewService() *Service {
 	return &Service{
-		drivers: make(map[string]*driverpb.Driver),
+		drivers: make([]*driverInMap, 0),
 	}
+}
+
+type PackageSlug string
+
+var packageSlugs = map[string]PackageSlug{
+	"van":    "van",
+	"suv":    "suv",
+	"sedan":  "sedan",
+	"luxury": "luxury",
+}
+
+func parsePackageSlug(s string) (PackageSlug, bool) {
+	slug, ok := packageSlugs[strings.ToLower(strings.TrimSpace(s))]
+	return slug, ok
+}
+
+type Driver struct {
+	ID             string      `json:"id"`
+	Name           string      `json:"name"`
+	ProfilePicture string      `json:"profilePicture"`
+	CarPlate       string      `json:"carPlate"`
+	PackageSlug    PackageSlug `json:"packageSlug"`
 }
 
 func (s *Service) RegisterDriver(req *driverpb.RegisterDriverRequest) (*driverpb.Driver, error) {
-	driverID := strings.TrimSpace(req.GetDriverId())
-	packageSlug := strings.TrimSpace(req.GetPackageSlug())
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	driverID := req.GetDriverId()
 
-	driver := &driverpb.Driver{
-		Id:          driverID,
-		PackageSlug: packageSlug,
+	packageSlug, ok := parsePackageSlug(req.GetPackageSlug())
+	if !ok {
+		return nil, errs.New(errs.InvalidArgument, errors.New("unsupported package slug"))
 	}
 
-	s.mu.Lock()
-	s.drivers[driverID] = driver
-	s.mu.Unlock()
+	randomRoute := PredefinedRoutes[mathrand.IntN(len(PredefinedRoutes))]
+	latitude := randomRoute[0][0]
+	longitude := randomRoute[0][1]
 
-	return cloneDriver(driver), nil
+	driver := &driverpb.Driver{
+		Id:             driverID,
+		Name:           "Lando Norris",
+		ProfilePicture: util.GetRandomAvatar(mathrand.IntN(10)),
+		CarPlate:       GenerateRandomPlate(),
+		GeoHash:        geohash.EncodeWithPrecision(latitude, longitude, 7),
+		PackageSlug:    string(packageSlug),
+		Location: &driverpb.Location{
+			Latitude:  latitude,
+			Longitude: longitude,
+		},
+	}
+
+	s.drivers = append(s.drivers, &driverInMap{Driver: driver})
+	return driver, nil
 }
 
 func (s *Service) UnregisterDriver(req *driverpb.RegisterDriverRequest) (*driverpb.Driver, error) {
-	driverID := strings.TrimSpace(req.GetDriverId())
-	packageSlug := strings.TrimSpace(req.GetPackageSlug())
+	driverID := req.GetDriverId()
+	packageSlug := req.GetPackageSlug()
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	driver, ok := s.drivers[driverID]
-	if !ok || driver.GetPackageSlug() != packageSlug {
-		return nil, errs.New(errs.NotFound, errors.New("driver not found"))
+	for index, driverEntry := range s.drivers {
+		driver := driverEntry.GetDriver()
+		if driver == nil {
+			continue
+		}
+		if driver.GetId() != driverID || driver.GetPackageSlug() != packageSlug {
+			continue
+		}
+
+		s.drivers = append(s.drivers[:index], s.drivers[index+1:]...)
+		return driver, nil
 	}
 
-	delete(s.drivers, driverID)
-	return cloneDriver(driver), nil
+	return nil, errs.New(errs.NotFound, errors.New("driver not found"))
 }
 
-func cloneDriver(driver *driverpb.Driver) *driverpb.Driver {
-	if driver == nil {
+func (d *driverInMap) GetDriver() *driverpb.Driver {
+	if d == nil {
 		return nil
 	}
 
-	return proto.Clone(driver).(*driverpb.Driver)
+	return d.Driver
 }

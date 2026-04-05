@@ -36,7 +36,7 @@ export enum CarPackageSlug {
 export interface RouteFare {
     id: string,
     packageSlug: CarPackageSlug,
-    basePrice: number,
+    basePrice?: number,
     totalPriceInCents?: number,
     expiresAt: Date,
     route: Route,

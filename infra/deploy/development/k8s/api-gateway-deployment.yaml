@@ -36,6 +36,11 @@ spec:
                 configMapKeyRef:
                   key: TRIP_SERVICE_GRPC_URL
                   name: app-config
+            - name: DRIVER_SERVICE_GRPC_URL
+              valueFrom:
+                configMapKeyRef:
+                  key: DRIVER_SERVICE_GRPC_URL
+                  name: app-config
 ---
 apiVersion: v1
 kind: Service

@@ -25,7 +25,15 @@ export function DriverList({ trip, onPackageSelect, onCancel }: DriverListProps)
         <div className="space-y-4">
           {trip?.rideFares.map((fare) => {
             const Icon = PackagesMeta[fare.packageSlug].icon;
-            const price = fare.totalPriceInCents && `$${(fare.totalPriceInCents / 100).toFixed(2)}`
+            const fareAmount =
+              typeof fare.totalPriceInCents === "number"
+                ? fare.totalPriceInCents
+                : typeof fare.basePrice === "number"
+                  ? fare.basePrice
+                  : null
+            const price = fareAmount !== null
+              ? `$${(fareAmount / 100).toFixed(2)}`
+              : "Price unavailable"
 
             return (
               <div

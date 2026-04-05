@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"strings"
 
 	"github.com/gorilla/websocket"
+	"github.com/iamonah/rideshare/services/apigateway/internal/infra/client"
+	httpcommon "github.com/iamonah/rideshare/services/apigateway/internal/transport/http/common"
 	"github.com/iamonah/rideshare/shared/contracts"
-	"github.com/iamonah/rideshare/shared/util"
+	"github.com/iamonah/rideshare/shared/proto/pb/driverpb"
 )
 
 var websocketUpgrader = websocket.Upgrader{
@@ -19,7 +20,9 @@ var websocketUpgrader = websocket.Upgrader{
 	},
 }
 
-type Handler struct{}
+type Handler struct {
+	driverClient *client.DriverClient
+}
 
 type Message struct {
 	Type    string          `json:"type"`
@@ -43,25 +46,10 @@ func NewClient(conn *websocket.Conn, id string) *Client {
 	}
 }
 
-type PackageSlug string
-
-var packageSlugs = map[string]PackageSlug{
-	"van":    "van",
-	"suv":    "suv",
-	"sedan":  "sedan",
-	"luxury": "luxury",
-}
-
-type Driver struct {
-	ID             string      `json:"id"`
-	Name           string      `json:"name"`
-	ProfilePicture string      `json:"profilePicture"`
-	CarPlate       string      `json:"carPlate"`
-	PackageSlug    PackageSlug `json:"packageSlug"`
-}
-
-func NewHandler() *Handler {
-	return &Handler{}
+func NewHandler(dc *client.DriverClient) *Handler {
+	return &Handler{
+		driverClient: dc,
+	}
 }
 
 func (c *Client) ReadMessage() {
@@ -94,34 +82,45 @@ func (h *Handler) HandleDriversWebsocket(w http.ResponseWriter, r *http.Request)
 	}
 
 	packageSlug := r.URL.Query().Get("packageSlug")
-	slug, ok := parsePackageSlug(packageSlug)
-	if !ok {
-		log.Printf("Invalid packageSlug '%s' in query parameters", packageSlug)
-		return
-	}
 
 	conn, err := websocketUpgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println("Websocket upgrade error:", err)
+		conn.Close()
+		return
+	}
+
+	data, err := h.driverClient.RegisterDriver(r.Context(), &driverpb.RegisterDriverRequest{
+		DriverId:    userID,
+		PackageSlug: packageSlug,
+	})
+	if err != nil {
+		httpcommon.WriteUpstreamGRPCError(w, "driver_service", err)
+		conn.Close()
 		return
 	}
 
 	msg := contracts.WSMessage{
 		Type: "driver.cmd.register",
-		Data: Driver{
-			ID:             userID,
-			Name:           "Victor",
-			ProfilePicture: util.GetRandomAvatar(5),
-			CarPlate:       "ABC-123",
-			PackageSlug:    slug,
-		},
+		Data: data,
 	}
 
+	// a defer function to unregister the driver when the connection is closed
+	defer func() {
+		h.driverClient.UnregisterDriver(r.Context(), &driverpb.RegisterDriverRequest{
+			DriverId:    userID,
+			PackageSlug: packageSlug,
+		})
+	}()
 	if err := conn.WriteJSON(msg); err != nil {
 		log.Printf("Failed to send registration message to driver %s: %v", userID, err)
 		conn.Close()
-		return
+		return 
 	}
+
+	client := NewClient(conn, userID)
+	go client.ReadMessage()                 
+	go client.WriteMessage()
 }
 
 func (h *Handler) HandleRidersWebsocket(w http.ResponseWriter, r *http.Request) {
@@ -134,15 +133,11 @@ func (h *Handler) HandleRidersWebsocket(w http.ResponseWriter, r *http.Request) 
 	conn, err := websocketUpgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println("Websocket upgrade error:", err)
+		conn.Close()
 		return
 	}
 
 	client := NewClient(conn, userID)
 	go client.ReadMessage()
 	go client.WriteMessage()
-}
-
-func parsePackageSlug(s string) (PackageSlug, bool) {
-	slug, ok := packageSlugs[strings.ToLower(strings.TrimSpace(s))]
-	return slug, ok
 }

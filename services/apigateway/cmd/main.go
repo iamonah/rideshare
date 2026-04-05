@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"time"
 
-	tripclient "github.com/iamonah/rideshare/services/apigateway/internal/infra/client"
+	"github.com/iamonah/rideshare/services/apigateway/internal/infra/client"
 	httptransport "github.com/iamonah/rideshare/services/apigateway/internal/transport/http"
 	websockettransport "github.com/iamonah/rideshare/services/apigateway/internal/transport/websocket"
 	"github.com/iamonah/rideshare/shared/env"
@@ -20,8 +20,9 @@ import (
 )
 
 var (
-	httpAddr        = env.GetString("HTTP_ADDR", ":8081")
-	tripServiceAddr = env.GetString("TRIP_SERVICE_GRPC_URL", "")
+	httpAddr          = env.GetString("HTTP_ADDR", ":8081")
+	tripServiceAddr   = env.GetString("TRIP_SERVICE_GRPC_URL", "")
+	driverServiceAddr = env.GetString("DRIVER_SERVICE_GRPC_URL", "")
 )
 
 func main() {
@@ -31,21 +32,33 @@ func main() {
 		log.Fatal("TRIP_SERVICE_GRPC_URL is required")
 	}
 
+	if driverServiceAddr == "" {
+		log.Fatal("DRIVER_SERVICE_GRPC_URL is required")
+	}
+
 	log.Printf("Trip gRPC client initialized for %s (non-blocking dial)", tripServiceAddr)
-	tripClient, err := tripclient.NewClient(tripServiceAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	tripClient, err := client.NewClient(tripServiceAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("Failed to create gRPC client: %v", err)
 	}
 	defer tripClient.Close()
 
-	websocketHandler := websockettransport.NewHandler()
+	log.Printf("Driver gRPC client initialized for %s (non-blocking dial)", driverServiceAddr)
+	driverClient, err := client.NewDriverClient(driverServiceAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("Failed to create gRPC client: %v", err)
+	}
+	defer driverClient.Close()
+
+	websocketHandler := websockettransport.NewHandler(driverClient)
 
 	log.Println("Listening on", httpAddr)
 
 	server := &http.Server{
 		Addr: httpAddr,
 		Handler: httptransport.NewRouter(httptransport.Dependencies{
-			Trips:      tripClient,
+			Trips: tripClient,
+			// Drivers:    driverClient,
 			Websockets: websocketHandler,
 		}),
 	}
