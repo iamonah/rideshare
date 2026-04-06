@@ -22,7 +22,7 @@ type RideFare struct {
 	UserID            string        `bson:"user_id" json:"user_id"`
 	PackageSlug       PackageSlug   `bson:"package_slug" json:"package_slug"` // ex: van, luxury, sedan
 	TotalPriceInCents float64       `bson:"total_price_in_cents" json:"total_price_in_cents"`
-	Route             *RouteSummary `bson:"route" json:"route"`
+	Route             *RouteSummary `bson:"route" json:"route"` //driver visualization
 }
 
 func (r *RideFare) ToProto() *trippb.RideFare {
