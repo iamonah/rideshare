@@ -23,6 +23,11 @@ spec:
                 configMapKeyRef:
                   name: app-config
                   key: OSRM_BASE_URL
+            - name: OSRM_TIMEOUT
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: OSRM_TIMEOUT
           resources:
             requests:
               memory: "64Mi"

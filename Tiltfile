@@ -98,18 +98,10 @@ k8s_resource('driver-service', resource_deps=['driver-service-compile'], labels=
 ### End of Driver Service ###
 ### Web Frontend ###
 
-docker_build_with_restart(
+docker_build(
   'ride-sharing/web',
-  './web',
-  entrypoint=['npm', 'run', 'dev', '--', '--hostname', '0.0.0.0'],
+  '.',
   dockerfile='./infra/deploy/development/docker/web.Dockerfile',
-  live_update=[
-    sync('./web/src', '/app/src'),
-    sync('./web/public', '/app/public'),
-    sync('./web/package.json', '/app/package.json'),
-    sync('./web/package-lock.json', '/app/package-lock.json'),
-    run('npm install', trigger=['./web/package.json', './web/package-lock.json']),
-  ],
 )
 
 k8s_yaml('./infra/deploy/development/k8s/web-deployment.yaml')

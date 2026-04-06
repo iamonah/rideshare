@@ -28,7 +28,7 @@ func main() {
 	log.Println("--- Trip Service Initializing... ---")
 	inmemRepo := tripdb.NewInmemRepository()
 	routeHTTPClient := &http.Client{Timeout: osrmTimeout}
-	routeProvider := osrm.NewClient(routeHTTPClient, osrmURL)
+	var routeProvider tripdomain.RouteProvider = osrm.NewClient(routeHTTPClient, osrmURL)
 	svc := tripdomain.NewTripBusiness(inmemRepo, routeProvider)
 
 	listener, err := net.Listen("tcp", grpcAddr)
