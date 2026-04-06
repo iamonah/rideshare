@@ -3,7 +3,7 @@ package grpcerrs
 import (
 	"errors"
 
-	sharederrs "github.com/iamonah/rideshare/shared/errs"
+	errs "github.com/iamonah/rideshare/shared/errs"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -14,7 +14,7 @@ func ToStatus(err error) error {
 		return nil
 	}
 
-	var appErr *sharederrs.AppError
+	var appErr *errs.AppError
 	if errors.As(err, &appErr) && appErr != nil {
 		if len(appErr.Fields) > 0 {
 			return statusWithFieldDetails(appErr.Code.GRPCStatus(), appErr.Error(), fieldViolations(appErr.Fields))
@@ -23,21 +23,23 @@ func ToStatus(err error) error {
 		return status.Error(appErr.Code.GRPCStatus(), clientMessage(appErr))
 	}
 
-	var fields sharederrs.FieldErrors
+	var fields errs.FieldErrors
 	if errors.As(err, &fields) && len(fields) > 0 {
-		return statusWithFieldDetails(sharederrs.InvalidArgument.GRPCStatus(), "validation failed", fieldViolations(fields))
+		return statusWithFieldDetails(errs.InvalidArgument.GRPCStatus(), "validation failed", fieldViolations(fields))
 	}
 
-	return status.Error(sharederrs.Internal.GRPCStatus(), "internal service error")
+	return status.Error(errs.Internal.GRPCStatus(), "internal service error")
 }
 
-func clientMessage(appErr *sharederrs.AppError) string {
+func clientMessage(appErr *errs.AppError) string {
 	if appErr == nil {
 		return "Service temporarily unavailable, please try again later"
 	}
 
 	switch appErr.Code {
-	case sharederrs.Internal, sharederrs.Unknown, sharederrs.DataLoss, sharederrs.InternalOnlyLog, sharederrs.Unavailable:
+	case errs.Internal, errs.Unknown, errs.DataLoss,
+		errs.DeadlineExceeded,
+		errs.InternalOnlyLog, errs.Unavailable, errs.Canceled:
 		return "Service temporarily unavailable, please try again later"
 	default:
 		return appErr.Error()
@@ -60,7 +62,7 @@ func statusWithFieldDetails(code codes.Code, message string, violations []*errde
 	return withDetails.Err()
 }
 
-func fieldViolations(fields sharederrs.FieldErrors) []*errdetails.BadRequest_FieldViolation {
+func fieldViolations(fields errs.FieldErrors) []*errdetails.BadRequest_FieldViolation {
 	if len(fields) == 0 {
 		return nil
 	}

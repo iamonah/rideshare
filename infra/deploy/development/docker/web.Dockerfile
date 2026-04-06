@@ -2,14 +2,12 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-COPY web/package*.json ./
+COPY package*.json ./
 
 RUN npm install
 
-COPY web ./
-
-RUN npm run build
+COPY . ./
 
 EXPOSE 3000
 
-CMD ["npm", "start"]
+CMD ["npm", "run", "dev", "--", "--hostname", "0.0.0.0"]

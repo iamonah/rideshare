@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 
@@ -50,7 +51,7 @@ func (c *Client) GetRoute(ctx context.Context, pickup, destination *types.Coordi
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return nil, errs.Newf(errs.Unavailable, err, "route provider unavailable")
+		return nil, classifyTransportError(err)
 	}
 	defer resp.Body.Close()
 
@@ -79,6 +80,20 @@ func (c *Client) GetRoute(ctx context.Context, pickup, destination *types.Coordi
 	}
 
 	return toDomainRoute(routeResp), nil
+}
+
+func classifyTransportError(err error) error {
+	switch {
+	case errors.Is(err, context.DeadlineExceeded):
+		log.Printf("osrm route request timed out: %v", err)
+		return errs.New(errs.DeadlineExceeded, errors.New("route provider request timed out"))
+	case errors.Is(err, context.Canceled):
+		log.Printf("osrm route request canceled: %v", err)
+		return errs.New(errs.Canceled, errors.New("route provider request canceled"))
+	default:
+		log.Printf("osrm route provider unavailable: %v", err)
+		return errs.Newf(errs.Unavailable, err, "route provider unavailable")
+	}
 }
 
 func classifyError(statusCode int, routeErr *errorResponse) error {

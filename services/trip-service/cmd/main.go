@@ -19,14 +19,16 @@ import (
 )
 
 var (
-	grpcAddr = env.GetString("GRPC_ADDR", ":9093")
-	osrmURL  = env.GetString("OSRM_BASE_URL", "")
+	grpcAddr    = env.GetString("GRPC_ADDR", ":9093")
+	osrmURL     = env.GetString("OSRM_BASE_URL", "")
+	osrmTimeout = env.GetDuration("OSRM_TIMEOUT", 5*time.Second)
 )
 
 func main() {
 	log.Println("--- Trip Service Initializing... ---")
 	inmemRepo := tripdb.NewInmemRepository()
-	routeProvider := osrm.NewClient(http.DefaultClient, osrmURL)
+	routeHTTPClient := &http.Client{Timeout: osrmTimeout}
+	routeProvider := osrm.NewClient(routeHTTPClient, osrmURL)
 	svc := tripdomain.NewTripBusiness(inmemRepo, routeProvider)
 
 	listener, err := net.Listen("tcp", grpcAddr)

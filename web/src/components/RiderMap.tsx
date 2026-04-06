@@ -5,7 +5,7 @@ import { useRiderStreamConnection } from '../hooks/useRiderStreamConnection';
 import { MapContainer, Marker, Popup, Rectangle, TileLayer } from 'react-leaflet'
 import L from 'leaflet';
 import { getGeohashBounds } from '../utils/geohash';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { MapClickHandler } from './MapClickHandler';
 import { Button } from './ui/button';
 import { RouteFare, RequestRideProps, TripPreview, HTTPTripStartResponse } from "../types";
@@ -31,6 +31,11 @@ interface RiderMapProps {
     onRouteSelected?: (distance: number) => void;
 }
 
+const TEST_RIDER_LOCATION = {
+    latitude: 37.7749,
+    longitude: -122.4194,
+}
+
 export default function RiderMap({ onRouteSelected }: RiderMapProps) {
     const [trip, setTrip] = useState<TripPreview | null>(null)
     const [previewError, setPreviewError] = useState<string | null>(null)
@@ -39,11 +44,7 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
     const mapRef = useRef<L.Map>(null)
     const userID = useMemo(() => crypto.randomUUID(), [])
     const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-    const location = {
-        latitude: 37.7749,
-        longitude: -122.4194,
-    };
+    const previewAbortControllerRef = useRef<AbortController | null>(null);
 
     const {
         drivers,
@@ -52,9 +53,17 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
         assignedDriver,
         paymentSession,
         resetTripStatus
-    } = useRiderStreamConnection(location, userID);
+    } = useRiderStreamConnection(TEST_RIDER_LOCATION, userID);
 
     console.log(tripStatus)
+
+    useEffect(() => {
+        if (!mapRef.current) {
+            return
+        }
+
+        mapRef.current.setView([TEST_RIDER_LOCATION.latitude, TEST_RIDER_LOCATION.longitude], 13)
+    }, [])
 
     const handleMapClick = async (e: L.LeafletMouseEvent) => {
         if (trip?.tripId) {
@@ -65,15 +74,26 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
             clearTimeout(debounceTimeoutRef.current);
         }
 
+        if (previewAbortControllerRef.current) {
+            previewAbortControllerRef.current.abort()
+            previewAbortControllerRef.current = null
+        }
+
         debounceTimeoutRef.current = setTimeout(async () => {
+            const abortController = new AbortController()
+            previewAbortControllerRef.current = abortController
             setDestination([e.latlng.lat, e.latlng.lng])
             setPreviewError(null)
 
             try {
                 const data = await requestRidePreview({
-                    pickup: [location.latitude, location.longitude],
+                    pickup: [TEST_RIDER_LOCATION.latitude, TEST_RIDER_LOCATION.longitude],
                     destination: [e.latlng.lat, e.latlng.lng],
-                })
+                }, abortController.signal)
+
+                if (previewAbortControllerRef.current !== abortController) {
+                    return
+                }
 
                 const routeCoordinates = data.route?.geometry?.[0]?.coordinates
                 if (!routeCoordinates || routeCoordinates.length === 0) {
@@ -93,14 +113,22 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
 
                 onRouteSelected?.(data.route.distance)
             } catch (err) {
+                if (err instanceof DOMException && err.name === "AbortError") {
+                    return
+                }
+
                 const message = err instanceof Error ? err.message : "Unable to preview this trip right now"
                 setTrip(null)
                 setPreviewError(message)
+            } finally {
+                if (previewAbortControllerRef.current === abortController) {
+                    previewAbortControllerRef.current = null
+                }
             }
         }, 500);
     }
 
-    const requestRidePreview = async (props: RequestRideProps): Promise<HTTPTripPreviewResponse> => {
+    const requestRidePreview = async (props: RequestRideProps, signal?: AbortSignal): Promise<HTTPTripPreviewResponse> => {
         const { pickup, destination } = props
         const payload = {
             userId: userID,
@@ -119,6 +147,7 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
             headers: {
                 'Content-Type': 'application/json',
             },
+            signal,
             body: JSON.stringify(payload),
         })
 
@@ -133,6 +162,18 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
         const { data } = body
         return data
     }
+
+    useEffect(() => {
+        return () => {
+            if (debounceTimeoutRef.current) {
+                clearTimeout(debounceTimeoutRef.current)
+            }
+
+            if (previewAbortControllerRef.current) {
+                previewAbortControllerRef.current.abort()
+            }
+        }
+    }, [])
 
     const handleStartTrip = async (fare: RouteFare) => {
         const payload = {
@@ -177,7 +218,7 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
         <div className="relative flex flex-col md:flex-row h-screen">
             <div className={`${destination ? 'flex-[0.7]' : 'flex-1'}`}>
                 <MapContainer
-                    center={[location.latitude, location.longitude]}
+                    center={[TEST_RIDER_LOCATION.latitude, TEST_RIDER_LOCATION.longitude]}
                     zoom={13}
                     style={{ height: '100%', width: '100%' }}
                     ref={mapRef}
@@ -186,7 +227,7 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
                         url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
                         attribution="&copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors &copy; <a href='https://carto.com/'>CARTO</a>"
                     />
-                    <Marker position={[location.latitude, location.longitude]} icon={userMarker} />
+                    <Marker position={[TEST_RIDER_LOCATION.latitude, TEST_RIDER_LOCATION.longitude]} icon={userMarker} />
 
                     {/* Render geohash grid cells */}
                     {drivers?.map((driver) => (
