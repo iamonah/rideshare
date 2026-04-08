@@ -6,7 +6,8 @@ require (
 	github.com/go-playground/validator/v10 v10.30.1
 	github.com/gorilla/mux v1.8.1
 	github.com/gorilla/websocket v1.5.3
-	go.mongodb.org/mongo-driver v1.17.9
+	github.com/mmcloughlin/geohash v0.10.0
+	github.com/streadway/amqp v1.1.0
 	go.mongodb.org/mongo-driver/v2 v2.4.2
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251202230838-ff82c1b0f217
 	google.golang.org/grpc v1.79.1
@@ -20,8 +21,6 @@ require (
 	github.com/golang/snappy v1.0.0 // indirect
 	github.com/klauspost/compress v1.16.7 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
-	github.com/mmcloughlin/geohash v0.10.0 // indirect
-	github.com/montanaflynn/stats v0.7.1 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect
