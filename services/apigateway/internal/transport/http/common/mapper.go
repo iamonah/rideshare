@@ -8,6 +8,7 @@ import (
 
 	"github.com/iamonah/rideshare/shared/errs"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
@@ -47,7 +48,7 @@ func appErrorFromUpstreamGRPC(serviceName string, err error) *errs.AppError {
 
 	if errors.Is(err, context.DeadlineExceeded) {
 		apiErr.Code = errs.DeadlineExceeded
-		apiErr.Message = fmt.Sprintf("%s request timed out", serviceName)
+		apiErr.Message = unifiedUpstreamMessage()
 		return apiErr
 	}
 
@@ -57,10 +58,25 @@ func appErrorFromUpstreamGRPC(serviceName string, err error) *errs.AppError {
 	}
 
 	apiErr.Code = errs.FromGRPCCode(st.Code())
-	if st.Message() != "" {
+	if message := unifiedUpstreamMessageForCode(st.Code()); message != "" {
+		apiErr.Message = message
+	} else if st.Message() != "" {
 		apiErr.Message = st.Message()
 	}
 	apiErr.Fields = apiFieldErrors(st)
 
 	return apiErr
+}
+
+func unifiedUpstreamMessage() string {
+	return "Service temporarily unavailable, please try again later"
+}
+
+func unifiedUpstreamMessageForCode(code codes.Code) string {
+	switch code {
+	case codes.Canceled, codes.DeadlineExceeded, codes.Unknown, codes.Internal, codes.Unavailable, codes.DataLoss:
+		return unifiedUpstreamMessage()
+	default:
+		return ""
+	}
 }
