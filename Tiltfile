@@ -35,7 +35,7 @@ docker_build_with_restart(
     './shared',
   ],
   live_update=[
-    sync('./build', '/app/build'),
+    sync('./build/api-gateway', '/app/build/api-gateway'),
     sync('./shared', '/app/shared'),
   ],
 )
@@ -65,7 +65,7 @@ docker_build_with_restart(
     './shared',
   ],
   live_update=[
-    sync('./build', '/app/build'),
+    sync('./build/trip-service', '/app/build/trip-service'),
     sync('./shared', '/app/shared'),
   ],
 )
@@ -93,7 +93,7 @@ docker_build_with_restart(
     './shared',
   ],
   live_update=[
-    sync('./build', '/app/build'),
+    sync('./build/driver-service', '/app/build/driver-service'),
     sync('./shared', '/app/shared'),
   ],
 )
