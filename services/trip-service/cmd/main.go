@@ -15,13 +15,19 @@ import (
 	grpc_Handler "github.com/iamonah/rideshare/services/trip-service/internal/infra/grpc"
 	tripdb "github.com/iamonah/rideshare/services/trip-service/internal/infra/tripdb"
 	"github.com/iamonah/rideshare/shared/env"
+	"github.com/iamonah/rideshare/shared/rabbitmq"
 	"google.golang.org/grpc"
 )
 
 var (
-	grpcAddr    = env.GetString("GRPC_ADDR", ":9093")
-	osrmURL     = env.GetString("OSRM_BASE_URL", "")
-	osrmTimeout = env.GetDuration("OSRM_TIMEOUT", 5*time.Second)
+	grpcAddr       = env.GetString("GRPC_ADDR", ":9093")
+	osrmURL        = env.GetString("OSRM_BASE_URL", "")
+	osrmTimeout    = env.GetDuration("OSRM_TIMEOUT", 5*time.Second)
+	rabbitUsername = env.GetString("RABBITMQ_DEFAULT_USER", "")
+	rabbitPassword = env.GetString("RABBITMQ_DEFAULT_PASS", "")
+	rabbitHost     = env.GetString("RABBITMQ_HOST", "")
+	rabbitVhost    = env.GetString("RABBITMQ_VHOST", "")
+	rabbitPort     = env.GetInt("RABBITMQ_PORT", 5672)
 )
 
 func main() {
@@ -29,13 +35,26 @@ func main() {
 	inmemRepo := tripdb.NewInmemRepository()
 	routeHTTPClient := &http.Client{Timeout: osrmTimeout}
 	var routeProvider tripdomain.RouteProvider = osrm.NewClient(routeHTTPClient, osrmURL)
-	svc := tripdomain.NewTripBusiness(inmemRepo, routeProvider)
 
 	listener, err := net.Listen("tcp", grpcAddr)
 	if err != nil {
 		log.Fatalf("netListen %v", err)
 	}
 
+	rabbitClient, err := rabbitmq.NewRabbitMQClient(rabbitmq.RabbitMqConfig{
+		Username: rabbitUsername,
+		Password: rabbitPassword,
+		Host:     rabbitHost,
+		Vhost:    rabbitVhost,
+		Port:     int16(rabbitPort),
+	})
+	if err != nil {
+		log.Fatalf("failed to connect to RabbitMQ: %v", err)
+	}
+	defer rabbitClient.Close()
+	log.Println("starting RabbitMQ client...")
+
+	svc := tripdomain.NewTripBusiness(inmemRepo, routeProvider, rabbitClient)
 	grpcServer := grpc.NewServer(grpc.ChainUnaryInterceptor(nil))
 	grpc_Handler.NewTripServer(grpcServer, svc)
 

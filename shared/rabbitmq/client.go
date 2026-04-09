@@ -43,8 +43,10 @@ func NewRabbitMQClient(config RabbitMqConfig) (*RabbitMQClient, error) {
 }
 
 func (c *RabbitMQClient) Close() {
-	c.channel.Close()
-	c.conn.Close()
+	if c != nil {
+		c.channel.Close()
+		c.conn.Close()
+	}
 }
 
 func (c *RabbitMQClient) Publish(exchange, routingKey string, body []byte) error {

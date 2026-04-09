@@ -23,11 +23,36 @@ spec:
                 configMapKeyRef:
                   name: app-config
                   key: OSRM_BASE_URL
+
             - name: OSRM_TIMEOUT
               valueFrom:
                 configMapKeyRef:
                   name: app-config
                   key: OSRM_TIMEOUT
+
+            - name: RABBITMQ_DEFAULT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-credentials
+                  key: username
+
+            - name: RABBITMQ_DEFAULT_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-credentials
+                  key: password
+
+            - name: RABBITMQ_VHOST
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-credentials
+                  key: virtual_host
+
+            - name: RABBITMQ_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-credentials
+                  key: host
           resources:
             requests:
               memory: "64Mi"

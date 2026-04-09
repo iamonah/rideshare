@@ -7,6 +7,7 @@ import (
 
 	"github.com/iamonah/rideshare/shared/errs"
 	driverpb "github.com/iamonah/rideshare/shared/proto/pb/driverpb"
+	"github.com/iamonah/rideshare/shared/rabbitmq"
 	"github.com/iamonah/rideshare/shared/util"
 	"github.com/mmcloughlin/geohash"
 
@@ -20,13 +21,15 @@ type driverInMap struct {
 }
 
 type Service struct {
-	mu      sync.RWMutex
-	drivers []*driverInMap
+	mu             sync.RWMutex
+	drivers        []*driverInMap
+	rabbitmqClient *rabbitmq.RabbitMQClient
 }
 
-func NewService() *Service {
+func NewService(rabbitmqClient *rabbitmq.RabbitMQClient) *Service {
 	return &Service{
-		drivers: make([]*driverInMap, 0),
+		drivers:        make([]*driverInMap, 0),
+		rabbitmqClient: rabbitmqClient,
 	}
 }
 

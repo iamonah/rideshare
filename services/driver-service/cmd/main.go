@@ -9,10 +9,19 @@ import (
 	"syscall"
 
 	driverservice "github.com/iamonah/rideshare/services/driver-service/internal"
+	"github.com/iamonah/rideshare/shared/env"
+	"github.com/iamonah/rideshare/shared/rabbitmq"
 	grpcserver "google.golang.org/grpc"
 )
 
 var GrpcAddr = ":9092"
+var (
+	rabbitUsername = env.GetString("RABBITMQ_DEFAULT_USER", "")
+	rabbitPassword = env.GetString("RABBITMQ_DEFAULT_PASS", "")
+	rabbitHost     = env.GetString("RABBITMQ_HOST", "")
+	rabbitVhost    = env.GetString("RABBITMQ_VHOST", "")
+	rabbitPort     = env.GetInt("RABBITMQ_PORT", 5672)
+)
 
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -30,7 +39,20 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
-	svc := driverservice.NewService()
+	rabbitClient, err := rabbitmq.NewRabbitMQClient(rabbitmq.RabbitMqConfig{
+		Username: rabbitUsername,
+		Password: rabbitPassword,
+		Host:     rabbitHost,
+		Vhost:    rabbitVhost,
+		Port:     int16(rabbitPort),
+	})
+	if err != nil {
+		log.Fatalf("failed to connect to RabbitMQ: %v", err)
+	}
+	defer rabbitClient.Close()
+	log.Println("starting RabbitMQ client...")
+
+	svc := driverservice.NewService(rabbitClient)
 
 	// Starting the gRPC server
 	grpcServer := grpcserver.NewServer()
