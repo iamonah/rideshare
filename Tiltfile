@@ -2,12 +2,8 @@
 load('ext://restart_process', 'docker_build_with_restart')
 
 ### K8s Config ###
-
-# Uncomment to use secrets
 k8s_yaml('./infra/deploy/development/k8s/secrets.yaml')
-
 k8s_yaml('./infra/deploy/development/k8s/app-config.yaml')
-
 ### End of K8s Config ###
 
 ### RabbitMQ ###
@@ -16,7 +12,6 @@ k8s_resource('rabbitmq', port_forwards=['5672', '15672'], labels='tooling')
 ### End RabbitMQ ###
 
 ### API Gateway ###
-
 gateway_compile_cmd = 'mkdir -p build && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o build/api-gateway ./services/apigateway/cmd/main.go'
 
 local_resource(
@@ -42,12 +37,10 @@ docker_build_with_restart(
 
 k8s_yaml('./infra/deploy/development/k8s/api-gateway-deployment.yaml')
 k8s_resource('api-gateway', port_forwards=8081,
-             resource_deps=['api-gateway-compile'], labels=["services"])
+             resource_deps=['api-gateway-compile', 'rabbitmq'], labels=["services"])
 ### End of API Gateway ###
+
 ### Trip Service ###
-
-# Uncomment once we have a trip service
-
 trip_compile_cmd = 'mkdir -p build && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o build/trip-service ./services/trip-service/cmd/main.go'
 
 local_resource(
@@ -71,11 +64,10 @@ docker_build_with_restart(
 )
 
 k8s_yaml('./infra/deploy/development/k8s/trip-service-deployment.yaml')
-k8s_resource('trip-service', resource_deps=['trip-service-compile'], labels=["services"])
-
+k8s_resource('trip-service', resource_deps=['trip-service-compile', 'rabbitmq'], labels=["services"])
 ### End of Trip Service ###
-### Driver Service ###
 
+### Driver Service ###
 driver_compile_cmd = 'mkdir -p build && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o build/driver-service ./services/driver-service/cmd'
 
 local_resource(
@@ -99,18 +91,17 @@ docker_build_with_restart(
 )
 
 k8s_yaml('./infra/deploy/development/k8s/driver-service-deployment.yaml')
-k8s_resource('driver-service', resource_deps=['driver-service-compile'], labels=["services"])
-
+k8s_resource('driver-service', resource_deps=['driver-service-compile', 'rabbitmq'], labels=["services"])
 ### End of Driver Service ###
-### Web Frontend ###
 
+### Web Frontend ###
 docker_build(
   'ride-sharing/web',
   '.',
   dockerfile='./infra/deploy/development/docker/web.Dockerfile',
+  only=['./web'],
 )
 
 k8s_yaml('./infra/deploy/development/k8s/web-deployment.yaml')
 k8s_resource('web', port_forwards=3000, labels=["frontend"])
-
 ### End of Web Frontend ###
