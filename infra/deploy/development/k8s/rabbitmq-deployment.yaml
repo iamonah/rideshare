@@ -1,8 +1,9 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: rabbitmq
 spec:
+  serviceName: rabbitmq
   replicas: 1
   selector:
     matchLabels:
@@ -22,7 +23,7 @@ spec:
             tcpSocket:
               port: 5672
             periodSeconds: 10
-            timeoutSeconds: 5
+            timeoutSeconds: 15
             failureThreshold: 18
           readinessProbe:
             tcpSocket:
@@ -55,6 +56,21 @@ spec:
                 secretKeyRef:
                   name: rabbitmq-credentials
                   key: password
+            - name: RABBITMQ_MNESIA_BASE
+              value: /var/lib/rabbitmq/mnesia
+            - name: RABBITMQ_SERVICENAME
+              value: rideshare-rabbitmq
+          volumeMounts:
+            - name: rabbitmq-data
+              mountPath: /var/lib/rabbitmq
+  volumeClaimTemplates:
+  - metadata:
+      name: rabbitmq-data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 1Gi
 ---
 apiVersion: v1
 kind: Service
