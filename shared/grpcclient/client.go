@@ -1,7 +1,6 @@
 package grpcclient
 
 import (
-	"context"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -65,10 +64,10 @@ func New(opts Options) (*Client, error) {
 	}
 	dialOpts = append(dialOpts, opts.DialOptions...)
 
-	ctx, cancel := context.WithTimeout(context.Background(), dialTimeout)
-	defer cancel()
+	// ctx, cancel := context.WithTimeout(context.Background(), dialTimeout)
+	// defer cancel()
 
-	conn, err := grpc.DialContext(ctx, opts.Address, dialOpts...)
+	conn, err := grpc.NewClient(opts.Address, dialOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("grpcclient: dial %q failed: %w", opts.Address, err)
 	}
