@@ -1,0 +1,56 @@
+package messaging
+
+import amqp "github.com/rabbitmq/amqp091-go"
+
+const (
+	//exchange kind
+	TopicExchangeKind  = "topic"
+	FanoutExchangeKind = "fanout"
+	DirectExchangeKind = "direct"
+
+	//setup deadletter exchange and queue
+	DeadLetterExchange   = "rideshare.dlx"
+	DeadLetterQueue      = "rideshare.dlx.queue"
+	DeadLetterBindingKey = "#"
+)
+
+func SetupTopology() Topology {
+	return Topology{
+		Exchanges: []ExchangeSpec{
+			{
+				Name:    DeadLetterExchange,
+				Kind:    TopicExchangeKind,
+				Durable: true,
+			},
+		},
+		Queues: []QueueSpec{
+			{
+				Name:       DeadLetterQueue,
+				Durable:    true,
+				AutoDelete: false,
+				Args: amqp.Table{
+					// Expire messages from the DLQ after 60 seconds instead of re-dead-lettering them.
+					"x-message-ttl": int32(60000),
+				},
+			},
+		},
+		Bindings: []BindingSpec{
+			{
+				Queue:      DeadLetterQueue,
+				Exchange:   DeadLetterExchange,
+				RoutingKey: DeadLetterBindingKey,
+			},
+		},
+	}
+}
+
+func DurableQueueWithDLX(name string) QueueSpec {
+	return QueueSpec{
+		Name:       name,
+		Durable:    true,
+		AutoDelete: false,
+		Args: amqp.Table{
+			"x-dead-letter-exchange": DeadLetterExchange,
+		},
+	}
+}

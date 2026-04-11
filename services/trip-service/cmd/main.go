@@ -11,11 +11,12 @@ import (
 	"time"
 
 	tripdomain "github.com/iamonah/rideshare/services/trip-service/internal/domain/trip"
+	"github.com/iamonah/rideshare/services/trip-service/internal/infra/events"
 	"github.com/iamonah/rideshare/services/trip-service/internal/infra/external/osrm"
 	grpc_Handler "github.com/iamonah/rideshare/services/trip-service/internal/infra/grpc"
 	tripdb "github.com/iamonah/rideshare/services/trip-service/internal/infra/tripdb"
 	"github.com/iamonah/rideshare/shared/env"
-	"github.com/iamonah/rideshare/shared/rabbitmq"
+	"github.com/iamonah/rideshare/shared/messaging"
 	"google.golang.org/grpc"
 )
 
@@ -41,7 +42,7 @@ func main() {
 		log.Fatalf("netListen %v", err)
 	}
 
-	rabbitClient, err := rabbitmq.NewRabbitMQClient(rabbitmq.RabbitMqConfig{
+	rabbitClient, err := messaging.NewRabbitMQClient(messaging.RabbitMqConfig{
 		Username: rabbitUsername,
 		Password: rabbitPassword,
 		Host:     rabbitHost,
@@ -54,7 +55,9 @@ func main() {
 	defer rabbitClient.Close()
 	log.Println("starting RabbitMQ client...")
 
-	svc := tripdomain.NewTripBusiness(inmemRepo, routeProvider, rabbitClient)
+	eventPublisher := events.NewTripEventPublisher(rabbitClient)
+
+	svc := tripdomain.NewTripBusiness(inmemRepo, routeProvider, eventPublisher)
 	grpcServer := grpc.NewServer(grpc.ChainUnaryInterceptor(nil))
 	grpc_Handler.NewTripServer(grpcServer, svc)
 
@@ -94,3 +97,5 @@ func main() {
 	}
 
 }
+
+

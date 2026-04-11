@@ -8,6 +8,12 @@ type AmqpMessage struct {
 
 // Routing keys - using consistent event/command patterns
 const (
+	// Exchanges
+	DriverCommandsExchange  = "driver.cmd"
+	TripEventsExchange      = "trip.events"
+	PaymentcommandsExchange = "payment.cmd"
+	PaymentEventsExchange   = "payment.events"
+
 	// Trip events (trip.event.*)
 	TripEventCreated             = "trip.event.created"
 	TripEventDriverAssigned      = "trip.event.driver_assigned"
@@ -29,4 +35,7 @@ const (
 
 	// Payment commands (payment.cmd.*)
 	PaymentCmdCreateSession = "payment.cmd.create_session"
+
+	//Exchange
+
 )

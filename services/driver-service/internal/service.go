@@ -1,13 +1,15 @@
 package driverservice
 
 import (
+	"context"
 	"errors"
+	"log"
 	"strings"
 	"sync"
 
 	"github.com/iamonah/rideshare/shared/errs"
+	"github.com/iamonah/rideshare/shared/messaging"
 	driverpb "github.com/iamonah/rideshare/shared/proto/pb/driverpb"
-	"github.com/iamonah/rideshare/shared/rabbitmq"
 	"github.com/iamonah/rideshare/shared/util"
 	"github.com/mmcloughlin/geohash"
 
@@ -23,14 +25,22 @@ type driverInMap struct {
 type Service struct {
 	mu             sync.RWMutex
 	drivers        []*driverInMap
-	rabbitmqClient *rabbitmq.RabbitMQClient
+	rabbitmqClient *messaging.RabbitMQClient
 }
 
-func NewService(rabbitmqClient *rabbitmq.RabbitMQClient) *Service {
+func NewService(rabbitmqClient *messaging.RabbitMQClient) *Service {
 	return &Service{
 		drivers:        make([]*driverInMap, 0),
 		rabbitmqClient: rabbitmqClient,
 	}
+}
+
+//from the broker
+func (s *Service) HandleTripCreated(ctx context.Context, body []byte) error {
+	_ = ctx
+
+	log.Printf("received trip created event: %s", string(body))
+	return nil
 }
 
 type PackageSlug string

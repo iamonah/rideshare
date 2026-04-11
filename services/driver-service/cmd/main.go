@@ -9,8 +9,10 @@ import (
 	"syscall"
 
 	driverservice "github.com/iamonah/rideshare/services/driver-service/internal"
+	"github.com/iamonah/rideshare/services/driver-service/internal/infra/events"
+
 	"github.com/iamonah/rideshare/shared/env"
-	"github.com/iamonah/rideshare/shared/rabbitmq"
+	"github.com/iamonah/rideshare/shared/messaging"
 	grpcserver "google.golang.org/grpc"
 )
 
@@ -39,7 +41,7 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
-	rabbitClient, err := rabbitmq.NewRabbitMQClient(rabbitmq.RabbitMqConfig{
+	rabbitClient, err := messaging.NewRabbitMQClient(messaging.RabbitMqConfig{
 		Username: rabbitUsername,
 		Password: rabbitPassword,
 		Host:     rabbitHost,
@@ -52,7 +54,16 @@ func main() {
 	defer rabbitClient.Close()
 	log.Println("starting RabbitMQ client...")
 
+	if err := events.BootstrapDriverTopology(rabbitClient); err != nil {
+		log.Fatalf("failed to bootstrap driver RabbitMQ topology: %v", err)
+	}
+
 	svc := driverservice.NewService(rabbitClient)
+	
+	tripConsumer := events.NewTripConsumer(rabbitClient, svc)
+	if err := tripConsumer.Start(ctx); err != nil {
+		log.Fatalf("failed to start driver trip consumer: %v", err)
+	}
 
 	// Starting the gRPC server
 	grpcServer := grpcserver.NewServer()

@@ -3,7 +3,6 @@ package trip
 import (
 	"context"
 
-	"github.com/iamonah/rideshare/shared/rabbitmq"
 	"github.com/iamonah/rideshare/shared/types"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
@@ -28,13 +27,17 @@ type RouteProvider interface {
 type TripBusiness struct {
 	repo           TripRepository
 	route          RouteProvider
-	rabbitmqClient *rabbitmq.RabbitMQClient
+	eventPublisher TripEventPublisher
 }
 
-func NewTripBusiness(repo TripRepository, route RouteProvider, rabbitmqClient *rabbitmq.RabbitMQClient) *TripBusiness {
+type TripEventPublisher interface {
+	PublishTripCreated(ctx context.Context, data string) error
+}
+
+func NewTripBusiness(repo TripRepository, route RouteProvider, eventPublisher TripEventPublisher) *TripBusiness {
 	return &TripBusiness{
 		repo:           repo,
 		route:          route,
-		rabbitmqClient: rabbitmqClient,
+		eventPublisher: eventPublisher,
 	}
 }

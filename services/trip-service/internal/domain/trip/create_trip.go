@@ -31,5 +31,11 @@ func (s *TripBusiness) CreateTrip(ctx context.Context, userID string, rideFareID
 		return nil, errs.Newf(errs.Internal, err, "failed to create trip")
 	}
 
+	//publish trip created event
+	err = s.eventPublisher.PublishTripCreated(ctx, fmt.Sprintf("Trip created with ID: %s for user: %s", createdTrip.ID.Hex(), userID))
+	if err != nil {
+		return nil, errs.Newf(errs.Internal, err, "failed to publish trip created event")
+	}
+
 	return createdTrip, nil
 }
