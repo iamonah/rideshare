@@ -2,40 +2,39 @@ package events
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"github.com/iamonah/rideshare/shared/contracts"
 	"github.com/iamonah/rideshare/shared/messaging"
 )
 
+type TripEventHandler = messaging.MessageHandler
+
 type TripCreatedHandler interface {
-	HandleTripCreated(ctx context.Context, body []byte) error
+	HandleTripCreated(ctx context.Context, fn TripEventHandler) error
 }
 
 type TripConsumer struct {
 	rabbitmq *messaging.RabbitMQClient
-	handler  TripCreatedHandler
-	queue    string
 }
 
-func NewTripConsumer(rabbitmq *messaging.RabbitMQClient, handler TripCreatedHandler) *TripConsumer {
+func NewTripConsumer(rabbitmq *messaging.RabbitMQClient) *TripConsumer {
 	return &TripConsumer{
 		rabbitmq: rabbitmq,
-		handler:  handler,
-		queue:    contracts.TripEventCreated,
 	}
 }
 
-func (c *TripConsumer) Start(ctx context.Context) error {
-	err := c.rabbitmq.Consume(ctx, c.queue, func(ctx context.Context, body []byte) error {
-		log.Printf("driver recieved message: %v", body)
-		return nil
-	})
+func HandleTripCreated(ctx context.Context, body []byte) error {
+	log.Printf("received trip created event: %s", string(body))
+	return nil
+}
 
+// my thoughts on possible approaches for handling this
+func (c *TripConsumer) HandleTripCreated(ctx context.Context, fn TripEventHandler) error {
+	err := c.rabbitmq.Consume(ctx, contracts.TripEventCreated, fn)
 	if err != nil {
-		log.Printf("failed to start trip consumer: %v", err)
-		return err
+		return fmt.Errorf("consume tripcreated event: %w", err)
 	}
-
 	return nil
 }

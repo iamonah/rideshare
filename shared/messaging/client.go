@@ -85,7 +85,7 @@ func (rm *RabbitMQClient) Consume(ctx context.Context, queue string, fn MessageH
 		ctx,
 		queue, // queue
 		"",    // consumer
-		true,  // auto-ack
+		false, // auto-ack
 		false, // exclusive
 		false, // no-local
 		false, // no-wait
@@ -96,10 +96,24 @@ func (rm *RabbitMQClient) Consume(ctx context.Context, queue string, fn MessageH
 		return err
 	}
 
+	err = rm.channel.Qos(1, 0, false) // prefetch count of 1 for fair dispatch
+	if err != nil {
+		return fmt.Errorf("Qos: %w", err)
+	}
+
 	go func() {
 		for msg := range delivery {
 			if err := fn(ctx, msg.Body); err != nil {
 				log.Printf("failed to handle trip created event: %v", err)
+				if msg.Redelivered {
+					msg.Nack(false, false) // or false
+					continue
+				}
+				msg.Nack(false, true)
+				continue
+			}
+			if err := msg.Ack(false); err != nil {
+				log.Printf("ack failed, channel likely closed: %v", err)
 			}
 		}
 

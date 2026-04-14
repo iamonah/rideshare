@@ -58,12 +58,9 @@ func main() {
 		log.Fatalf("failed to bootstrap driver RabbitMQ topology: %v", err)
 	}
 
-	svc := driverservice.NewService(rabbitClient)
+	tripConsumer := events.NewTripConsumer(rabbitClient)
+	svc := driverservice.NewService(tripConsumer)
 	
-	tripConsumer := events.NewTripConsumer(rabbitClient, svc)
-	if err := tripConsumer.Start(ctx); err != nil {
-		log.Fatalf("failed to start driver trip consumer: %v", err)
-	}
 
 	// Starting the gRPC server
 	grpcServer := grpcserver.NewServer()
