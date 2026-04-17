@@ -31,7 +31,7 @@ type TripBusiness struct {
 }
 
 type TripEventPublisher interface {
-	PublishTripCreated(ctx context.Context, data string) error
+	PublishTripCreated(ctx context.Context, trip *Trip) error
 }
 
 func NewTripBusiness(repo TripRepository, route RouteProvider, eventPublisher TripEventPublisher) *TripBusiness {

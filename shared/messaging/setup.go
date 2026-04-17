@@ -14,7 +14,7 @@ const (
 	DeadLetterBindingKey = "#"
 )
 
-func SetupTopology() Topology {
+func DeadLetterTopology() Topology {
 	return Topology{
 		Exchanges: []ExchangeSpec{
 			{

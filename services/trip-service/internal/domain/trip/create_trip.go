@@ -9,7 +9,7 @@ import (
 )
 
 func (s *TripBusiness) CreateTrip(ctx context.Context, userID string, rideFareID bson.ObjectID) (*Trip, error) {
-	tripFare, err := s.repo.GetRideFareByID(ctx, rideFareID.String())
+	tripFare, err := s.repo.GetRideFareByID(ctx, rideFareID.Hex())
 	if err != nil {
 		return nil, errs.New(errs.NotFound, fmt.Errorf("ride fare not found: %s", rideFareID.Hex()))
 	}
@@ -17,13 +17,13 @@ func (s *TripBusiness) CreateTrip(ctx context.Context, userID string, rideFareID
 	if tripFare.UserID != userID {
 		return nil, errs.New(errs.PermissionDenied, fmt.Errorf("user %s is not authorized to create trip with fare %s", userID, rideFareID.Hex()))
 	}
-	
+
 	t := &Trip{
 		ID:       bson.NewObjectID(),
 		UserID:   userID,
 		Status:   "pending",
 		RideFare: tripFare,
-		Driver: &AssignedDriverSnapshot{},
+		Driver:   &AssignedDriverSnapshot{},
 	}
 
 	createdTrip, err := s.repo.CreateTrip(ctx, t)
@@ -32,7 +32,7 @@ func (s *TripBusiness) CreateTrip(ctx context.Context, userID string, rideFareID
 	}
 
 	//publish trip created event
-	err = s.eventPublisher.PublishTripCreated(ctx, fmt.Sprintf("Trip created with ID: %s for user: %s", createdTrip.ID.Hex(), userID))
+	err = s.eventPublisher.PublishTripCreated(ctx, createdTrip)
 	if err != nil {
 		return nil, errs.Newf(errs.Internal, err, "failed to publish trip created event")
 	}

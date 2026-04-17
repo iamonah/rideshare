@@ -2,10 +2,12 @@ package messaging
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/url"
 
+	"github.com/iamonah/rideshare/shared/contracts"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -29,13 +31,13 @@ func NewRabbitMQClient(config RabbitMqConfig) (*RabbitMQClient, error) {
 
 	conn, err := amqp.Dial(address)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("dial: %w", err)
 	}
 
 	ch, err := conn.Channel()
 	if err != nil {
 		conn.Close()
-		return nil, err
+		return nil, fmt.Errorf("connection channel: %w", err)
 	}
 
 	rc := RabbitMQClient{
@@ -43,13 +45,12 @@ func NewRabbitMQClient(config RabbitMqConfig) (*RabbitMQClient, error) {
 		channel: ch,
 	}
 
-	err = rc.BootstrapTopology(SetupTopology())
-	if err != nil {
-		ch.Close()
-		conn.Close()
-		return nil, fmt.Errorf("bootstrapSharedTopology: %w", err)
+	if err = rc.BootstrapTopology(DeadLetterTopology()); err != nil {
+		return nil, fmt.Errorf("bootstrap dead letter infrastructure: %w", err)
 	}
-
+	if err = rc.BootstrapTopology(sharedTopologySetup()); err != nil {
+		return nil, fmt.Errorf("bootstrap shared broker infrastructure: %w", err)
+	}
 	return &rc, nil
 }
 
@@ -64,7 +65,13 @@ func (rm *RabbitMQClient) Close() {
 	}
 }
 
-func (rm *RabbitMQClient) Publish(ctx context.Context, exchange, routingKey string, body []byte) error {
+func (rm *RabbitMQClient) Publish(ctx context.Context, exchange, routingKey string, msg contracts.AmqpMessage) error {
+	log.Printf("publishing messages with routing key: %s", routingKey)
+	body, err := json.Marshal(msg)
+	if err != nil {
+		return fmt.Errorf("marshal amqp message: %w", err)
+	}
+
 	return rm.channel.PublishWithContext(ctx,
 		exchange,   // exchange
 		routingKey, // routing key
@@ -78,9 +85,14 @@ func (rm *RabbitMQClient) Publish(ctx context.Context, exchange, routingKey stri
 	)
 }
 
-type MessageHandler func(ctx context.Context, body []byte) error
+type MessageHandler func(ctx context.Context, data []byte) error
 
 func (rm *RabbitMQClient) Consume(ctx context.Context, queue string, fn MessageHandler) error {
+	err := rm.channel.Qos(1, 0, false) // prefetch count of 1 for fair dispatch
+	if err != nil {
+		return fmt.Errorf("Qos: %w", err)
+	}
+
 	delivery, err := rm.channel.ConsumeWithContext(
 		ctx,
 		queue, // queue
@@ -96,15 +108,13 @@ func (rm *RabbitMQClient) Consume(ctx context.Context, queue string, fn MessageH
 		return err
 	}
 
-	err = rm.channel.Qos(1, 0, false) // prefetch count of 1 for fair dispatch
-	if err != nil {
-		return fmt.Errorf("Qos: %w", err)
-	}
-
+	log.Printf("started consuming queue: %s", queue)
 	go func() {
+		defer log.Printf("stopped consuming queue: %s", queue)
+
 		for msg := range delivery {
 			if err := fn(ctx, msg.Body); err != nil {
-				log.Printf("failed to handle trip created event: %v", err)
+				log.Printf("failed to handle message from queue %s: %v", queue, err)
 				if msg.Redelivered {
 					msg.Nack(false, false) // or false
 					continue

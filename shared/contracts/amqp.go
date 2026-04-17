@@ -1,18 +1,20 @@
 package contracts
 
+import "encoding/json"
+
 // AmqpMessage is the message structure for AMQP.
 type AmqpMessage struct {
-	OwnerID string `json:"ownerId"`
-	Data    []byte `json:"data"`
+	OwnerID string          `json:"ownerId"`
+	Data    json.RawMessage `json:"data"`
 }
 
 // Routing keys - using consistent event/command patterns
 const (
-	// Exchanges
-	DriverCommandsExchange  = "driver.cmd"
+	// Exchanges are named by domain and message category.
 	TripEventsExchange      = "trip.events"
-	PaymentcommandsExchange = "payment.cmd"
+	DriverCommandsExchange  = "driver.commands"
 	PaymentEventsExchange   = "payment.events"
+	PaymentCommandsExchange = "payment.commands"
 
 	// Trip events (trip.event.*)
 	TripEventCreated             = "trip.event.created"
@@ -35,7 +37,9 @@ const (
 
 	// Payment commands (payment.cmd.*)
 	PaymentCmdCreateSession = "payment.cmd.create_session"
+)
 
-	//Exchange
-
+const (
+	//queues drivers service consumption
+	FindAvailableDriversQueue = "driver.find_available_drivers"
 )

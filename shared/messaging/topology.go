@@ -61,19 +61,19 @@ func (rm *RabbitMQClient) bindQueue(spec BindingSpec) error {
 func (rm *RabbitMQClient) BootstrapTopology(topology Topology) error {
 	for _, exchange := range topology.Exchanges {
 		if err := rm.declareExchange(exchange); err != nil {
-			return err
+			return fmt.Errorf("failed to declare exchange: %s :%w", exchange.Name, err)
 		}
 	}
 
 	for _, queue := range topology.Queues {
 		if err := rm.declareQueue(queue); err != nil {
-			return err
+			return fmt.Errorf("failed to declare queue: %s :%w", queue.Name, err)
 		}
 	}
 
 	for _, binding := range topology.Bindings {
 		if err := rm.bindQueue(binding); err != nil {
-			return err
+			return fmt.Errorf("failed to bind queue: %s :%w", binding.Queue, err)
 		}
 	}
 
