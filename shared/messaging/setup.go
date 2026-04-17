@@ -47,14 +47,3 @@ func DeadLetterTopology() Topology {
 		},
 	}
 }
-
-func DurableQueueWithDLX(name string) QueueSpec {
-	return QueueSpec{
-		Name:       name,
-		Durable:    true,
-		AutoDelete: false,
-		Args: amqp.Table{
-			"x-dead-letter-exchange": DeadLetterExchange,
-		},
-	}
-}

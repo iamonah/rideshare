@@ -3,10 +3,13 @@ package driverservice
 import (
 	"context"
 	"errors"
+	"fmt"
+	"log"
 	"strings"
 	"sync"
 
 	"github.com/iamonah/rideshare/services/driver-service/internal/infra/events"
+	eventcontracts "github.com/iamonah/rideshare/shared/contracts/events"
 	"github.com/iamonah/rideshare/shared/errs"
 	driverpb "github.com/iamonah/rideshare/shared/proto/pb/driverpb"
 	"github.com/iamonah/rideshare/shared/util"
@@ -34,6 +37,14 @@ func NewService(tripConsumer *events.TripConsumer) *Service {
 	}
 }
 
+func (s *Service) RegisterEventConsumers(ctx context.Context) error {
+	if err := s.tripConsumer.HandleTripCreated(ctx, s.HandleTripCreated); err != nil {
+		return fmt.Errorf("register trip created consumer: %w", err)
+	}
+
+	return nil
+}
+
 type PackageSlug string
 
 var packageSlugs = map[string]PackageSlug{
@@ -54,6 +65,23 @@ type Driver struct {
 	ProfilePicture string      `json:"profilePicture"`
 	CarPlate       string      `json:"carPlate"`
 	PackageSlug    PackageSlug `json:"packageSlug"`
+}
+
+type TripRequest struct {
+	TripID          string
+	RiderID         string
+	Status          string
+	PackageSlug     string
+	Pickup          Coordinate
+	Dropoff         Coordinate
+	Route           []Coordinate
+	DistanceMeters  float64
+	DurationSeconds float64
+}
+
+type Coordinate struct {
+	Latitude  float64
+	Longitude float64
 }
 
 func (s *Service) RegisterDriver(req *driverpb.RegisterDriverRequest) (*driverpb.Driver, error) {
@@ -83,9 +111,52 @@ func (s *Service) RegisterDriver(req *driverpb.RegisterDriverRequest) (*driverpb
 		},
 	}
 
-	s.tripConsumer.HandleTripCreated(context.Background(), events.HandleTripCreated)
 	s.drivers = append(s.drivers, &driverInMap{Driver: driver})
 	return driver, nil
+}
+
+func (s *Service) HandleTripCreated(ctx context.Context, event *eventcontracts.TripCreatedEvent) error {
+	_ = ctx
+
+	request := tripCreatedEventToRequest(event)
+	log.Printf("driver service consumed trip request: %+v", request)
+	return nil
+}
+
+func tripCreatedEventToRequest(event *eventcontracts.TripCreatedEvent) TripRequest {
+	if event == nil {
+		return TripRequest{}
+	}
+
+	return TripRequest{
+		TripID:      event.TripID,
+		RiderID:     event.UserID,
+		Status:      event.Status,
+		PackageSlug: event.Fare.PackageSlug,
+		Pickup: Coordinate{
+			Latitude:  event.Pickup.Latitude,
+			Longitude: event.Pickup.Longitude,
+		},
+		Dropoff: Coordinate{
+			Latitude:  event.Dropoff.Latitude,
+			Longitude: event.Dropoff.Longitude,
+		},
+		Route:           eventRouteToLocalCoordinates(event.Route.Geometry),
+		DistanceMeters:  event.DistanceMeters,
+		DurationSeconds: event.DurationSeconds,
+	}
+}
+
+func eventRouteToLocalCoordinates(route []eventcontracts.Coordinate) []Coordinate {
+	coordinates := make([]Coordinate, 0, len(route))
+	for _, coordinate := range route {
+		coordinates = append(coordinates, Coordinate{
+			Latitude:  coordinate.Latitude,
+			Longitude: coordinate.Longitude,
+		})
+	}
+
+	return coordinates
 }
 
 func (s *Service) UnregisterDriver(req *driverpb.RegisterDriverRequest) (*driverpb.Driver, error) {
