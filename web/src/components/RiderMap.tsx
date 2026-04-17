@@ -188,9 +188,20 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
 
         const response = await fetch(`${API_URL}${BackendEndpoints.START_TRIP}`, {
             method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
             body: JSON.stringify(payload),
         })
-        const data = await response.json() as HTTPTripStartResponse
+        const body = await response.json() as {
+            data?: HTTPTripStartResponse
+            error?: { message?: string }
+        }
+        if (!response.ok || !body.data) {
+            throw new Error(body.error?.message || "Unable to start this trip right now")
+        }
+
+        const { data } = body
 
         if (response.ok && trip) {
             setTrip((prev) => ({
