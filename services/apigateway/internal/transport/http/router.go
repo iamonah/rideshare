@@ -12,7 +12,7 @@ import (
 )
 
 type Dependencies struct {
-	Trips      tripapp.PreviewTripUpstream
+	Trips      tripapp.Upstream
 	Websockets *websockettransport.Handler
 }
 

@@ -12,4 +12,5 @@ func RegisterRoutes(r *mux.Router, handler *Handler) {
 	}
 
 	r.HandleFunc("/trip/preview", handler.HandlePreview).Methods(http.MethodPost)
+	r.HandleFunc("/trip/start", handler.HandleCreate).Methods(http.MethodPost)
 }

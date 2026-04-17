@@ -63,7 +63,7 @@ message Trip {
   Route route = 3;
   string status = 4;
   string user_id = 5;
-  TripDriver driver = 6;
+  // TripDriver driver = 6;
 }
 
 // Static driver object that is used to store the driver information

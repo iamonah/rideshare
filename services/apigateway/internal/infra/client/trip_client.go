@@ -45,6 +45,18 @@ func (c *Client) PreviewTrip(ctx context.Context, input apptrip.PreviewTripInput
 	return toPreviewTripOutput(resp), nil
 }
 
+func (c *Client) CreateTrip(ctx context.Context, input apptrip.CreateTripInput) (*apptrip.CreateTripOutput, error) {
+	req := toCreateTripProto(input)
+
+	resp, err := c.client.CreateTrip(ctx, req)
+	if err != nil {
+		log.Printf("trip gRPC CreateTrip failed: %v", err)
+		return nil, err
+	}
+
+	return toCreateTripOutput(resp), nil
+}
+
 func (c *Client) Close() error {
 	if c == nil || c.conn == nil {
 		return nil
@@ -53,6 +65,24 @@ func (c *Client) Close() error {
 		return fmt.Errorf("closeTripClient: %w", err)
 	}
 	return nil
+}
+
+func toCreateTripProto(input apptrip.CreateTripInput) *trippb.CreateTripRequest {
+	return &trippb.CreateTripRequest{
+		RideFareId: input.RideFareID,
+		UserId:     input.UserID,
+	}
+}
+
+func toCreateTripOutput(resp *trippb.CreateTripResponse) *apptrip.CreateTripOutput {
+	if resp == nil {
+		return &apptrip.CreateTripOutput{}
+	}
+
+	return &apptrip.CreateTripOutput{
+		TripID: resp.GetTripId(),
+		Trip:   toTrip(resp.GetTrip()),
+	}
 }
 
 func toPreviewTripProto(input apptrip.PreviewTripInput) *trippb.PreviewTripRequest {
@@ -91,6 +121,48 @@ func toPreviewTripOutput(resp *trippb.PreviewTripResponse) *apptrip.PreviewTripO
 	}
 
 	return output
+}
+
+func toTrip(trip *trippb.Trip) *apptrip.Trip {
+	if trip == nil {
+		return nil
+	}
+
+	return &apptrip.Trip{
+		ID:           trip.GetId(),
+		SelectedFare: toRideFare(trip.GetSelectedFare()),
+		Route:        toRoute(trip.GetRoute()),
+		Status:       trip.GetStatus(),
+		UserID:       trip.GetUserId(),
+		// Driver:       toTripDriver(trip.GetDriver()),
+	}
+}
+
+func toRideFare(fare *trippb.RideFare) *apptrip.RideFare {
+	if fare == nil {
+		return nil
+	}
+
+	return &apptrip.RideFare{
+		ID:                fare.GetId(),
+		UserID:            fare.GetUserId(),
+		PackageSlug:       fare.GetPackageSlug(),
+		TotalPriceInCents: fare.GetTotalPriceInCents(),
+		Route:             toRoute(fare.GetRoute()),
+	}
+}
+
+func toTripDriver(driver *trippb.TripDriver) *apptrip.TripDriver {
+	if driver == nil {
+		return nil
+	}
+
+	return &apptrip.TripDriver{
+		ID:             driver.GetId(),
+		Name:           driver.GetName(),
+		ProfilePicture: driver.GetProfilePicture(),
+		CarPlate:       driver.GetCarPlate(),
+	}
 }
 
 func toRoute(route *trippb.Route) apptrip.Route {
