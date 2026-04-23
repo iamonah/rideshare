@@ -44,6 +44,7 @@ func NewRabbitMQClient(config RabbitMqConfig) (*RabbitMQClient, error) {
 		conn:    conn,
 		channel: ch,
 	}
+	rc.logReturnedMessages()
 
 	if err = rc.BootstrapTopology(DeadLetterTopology()); err != nil {
 		return nil, fmt.Errorf("bootstrap dead letter infrastructure: %w", err)
@@ -65,6 +66,23 @@ func (rm *RabbitMQClient) Close() {
 	}
 }
 
+func (rm *RabbitMQClient) logReturnedMessages() {
+	returns := rm.channel.NotifyReturn(make(chan amqp.Return, 16))
+
+	go func() {
+		for returned := range returns {
+			log.Printf(
+				"rabbitmq returned unroutable message exchange=%s routing_key=%s reply_code=%d reply_text=%q body=%s",
+				returned.Exchange,
+				returned.RoutingKey,
+				returned.ReplyCode,
+				returned.ReplyText,
+				string(returned.Body),
+			)
+		}
+	}()
+}
+
 func (rm *RabbitMQClient) Publish(ctx context.Context, exchange, routingKey string, msg contracts.AmqpMessage) error {
 	log.Printf("publishing messages with routing key: %s", routingKey)
 	body, err := json.Marshal(msg)
@@ -75,7 +93,7 @@ func (rm *RabbitMQClient) Publish(ctx context.Context, exchange, routingKey stri
 	return rm.channel.PublishWithContext(ctx,
 		exchange,   // exchange
 		routingKey, // routing key
-		false,      // mandatory
+		true,       // mandatory
 		false,      // immediate
 		amqp.Publishing{
 			ContentType:  "application/json",
@@ -85,7 +103,12 @@ func (rm *RabbitMQClient) Publish(ctx context.Context, exchange, routingKey stri
 	)
 }
 
-type MessageHandler func(ctx context.Context, data []byte) error
+type Message struct {
+	Body       []byte
+	RoutingKey string
+}
+
+type MessageHandler func(ctx context.Context, msg Message) error
 
 func (rm *RabbitMQClient) Consume(ctx context.Context, queue string, fn MessageHandler) error {
 	err := rm.channel.Qos(1, 0, false) // prefetch count of 1 for fair dispatch
@@ -112,17 +135,21 @@ func (rm *RabbitMQClient) Consume(ctx context.Context, queue string, fn MessageH
 	go func() {
 		defer log.Printf("stopped consuming queue: %s", queue)
 
-		for msg := range delivery {
-			if err := fn(ctx, msg.Body); err != nil {
+		for delivery := range delivery {
+			msg := Message{
+				Body:       delivery.Body,
+				RoutingKey: delivery.RoutingKey,
+			}
+			if err := fn(ctx, msg); err != nil {
 				log.Printf("failed to handle message from queue %s: %v", queue, err)
-				if msg.Redelivered {
-					msg.Nack(false, false) // or false
+				if delivery.Redelivered {
+					delivery.Nack(false, false) // or false
 					continue
 				}
-				msg.Nack(false, true)
+				delivery.Nack(false, true)
 				continue
 			}
-			if err := msg.Ack(false); err != nil {
+			if err := delivery.Ack(false); err != nil {
 				log.Printf("ack failed, channel likely closed: %v", err)
 			}
 		}

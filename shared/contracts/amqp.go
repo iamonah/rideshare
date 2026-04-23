@@ -13,14 +13,20 @@ const (
 	// Exchanges are named by domain and message category.
 	TripEventsExchange      = "trip.events"
 	DriverCommandsExchange  = "driver.commands"
+	DriverEventsExchange    = "driver.events"
 	PaymentEventsExchange   = "payment.events"
 	PaymentCommandsExchange = "payment.commands"
 
 	// Trip events (trip.event.*)
-	TripEventCreated             = "trip.event.created"
-	TripEventDriverAssigned      = "trip.event.driver_assigned"
-	TripEventNoDriversFound      = "trip.event.no_drivers_found"
-	TripEventDriverNotInterested = "trip.event.driver_not_interested"
+	TripEventCreated   = "trip.event.created"
+	TripEventUpdated   = "trip.event.updated"
+	TripEventCancelled = "trip.event.cancelled"
+	TripEventCompleted = "trip.event.completed"
+
+	// Driver events (driver.event.*)
+	DriverEventDriverAssigned      = "driver.event.driver_assigned"
+	DriverEventNoDriversFound      = "driver.event.no_drivers_found"
+	DriverEventDriverNotInterested = "driver.event.driver_not_interested"
 
 	// Driver commands (driver.cmd.*)
 	DriverCmdTripRequest = "driver.cmd.trip_request"
@@ -40,6 +46,8 @@ const (
 )
 
 const (
-	//queues drivers service consumption
-	FindAvailableDriversQueue = "driver.find_available_drivers"
+	// Queues
+	DriverTripEventsQueue   = "driver.trip-events.queue"
+	DriverTripRequestsQueue = "driver.trip-requests.queue"
+	TripDriverEventsQueue   = "trip.driver-events.queue"
 )
