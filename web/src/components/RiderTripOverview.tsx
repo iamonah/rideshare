@@ -124,7 +124,7 @@ export const RiderTripOverview = ({
     )
   }
 
-  if (status === TripEvents.Created || (trip.tripId && !status)) {
+  if (trip.tripId && !status) {
     return (
       <TripOverviewCard
         title="Looking for a driver"

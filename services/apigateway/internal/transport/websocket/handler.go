@@ -115,11 +115,11 @@ func (h *Handler) HandleDriversWebsocket(w http.ResponseWriter, r *http.Request)
 	if err := conn.WriteJSON(msg); err != nil {
 		log.Printf("Failed to send registration message to driver %s: %v", userID, err)
 		conn.Close()
-		return 
+		return
 	}
 
 	client := NewClient(conn, userID)
-	go client.ReadMessage()                 
+	go client.ReadMessage()
 	go client.WriteMessage()
 }
 

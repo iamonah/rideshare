@@ -10,8 +10,8 @@ export enum BackendEndpoints {
 }
 
 export enum TripEvents {
-  NoDriversFound = "trip.event.no_drivers_found",
-  DriverAssigned = "trip.event.driver_assigned",
+  NoDriversFound = "driver.event.no_drivers_found",
+  DriverAssigned = "driver.event.driver_assigned",
   Completed = "trip.event.completed",
   Cancelled = "trip.event.cancelled",
   Created = "trip.event.created",

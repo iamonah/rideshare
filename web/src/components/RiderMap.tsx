@@ -201,17 +201,7 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
             throw new Error(body.error?.message || "Unable to start this trip right now")
         }
 
-        const { data } = body
-
-        if (response.ok && trip) {
-            setTrip((prev) => ({
-                ...prev,
-                tripId: data.tripId,
-            } as TripPreview))
-
-        }
-
-        return data
+        return body.data
     }
 
     const handleCancelTrip = () => {
