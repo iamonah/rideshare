@@ -1,15 +1,10 @@
 package driverservice
 
 import (
-	"context"
 	"errors"
-	"fmt"
-	"log"
 	"strings"
 	"sync"
 
-	"github.com/iamonah/rideshare/services/driver-service/internal/infra/events"
-	eventcontracts "github.com/iamonah/rideshare/shared/contracts/events"
 	"github.com/iamonah/rideshare/shared/errs"
 	driverpb "github.com/iamonah/rideshare/shared/proto/pb/driverpb"
 	"github.com/iamonah/rideshare/shared/util"
@@ -25,24 +20,14 @@ type driverInMap struct {
 }
 
 type Service struct {
-	mu           sync.RWMutex
-	drivers      []*driverInMap
-	tripConsumer events.TripCreatedHandler
+	mu      sync.RWMutex
+	drivers []*driverInMap
 }
 
-func NewService(tripConsumer *events.TripConsumer) *Service {
+func NewService() *Service {
 	return &Service{
-		drivers:      make([]*driverInMap, 0),
-		tripConsumer: tripConsumer,
+		drivers: make([]*driverInMap, 0),
 	}
-}
-
-func (s *Service) RegisterEventConsumers(ctx context.Context) error {
-	if err := s.tripConsumer.HandleTripCreated(ctx, s.HandleTripCreated); err != nil {
-		return fmt.Errorf("register trip created consumer: %w", err)
-	}
-
-	return nil
 }
 
 type PackageSlug string
@@ -65,18 +50,8 @@ type Driver struct {
 	ProfilePicture string      `json:"profilePicture"`
 	CarPlate       string      `json:"carPlate"`
 	PackageSlug    PackageSlug `json:"packageSlug"`
-}
-
-type TripRequest struct {
-	TripID          string
-	RiderID         string
-	Status          string
-	PackageSlug     string
-	Pickup          Coordinate
-	Dropoff         Coordinate
-	Route           []Coordinate
-	DistanceMeters  float64
-	DurationSeconds float64
+	GeoHash        string      `json:"geoHash"`
+	Location       Coordinate  `json:"location"`
 }
 
 type Coordinate struct {
@@ -85,6 +60,10 @@ type Coordinate struct {
 }
 
 func (s *Service) RegisterDriver(req *driverpb.RegisterDriverRequest) (*driverpb.Driver, error) {
+	if req == nil {
+		return nil, errs.New(errs.InvalidArgument, errors.New("register driver request is required"))
+	}
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	driverID := req.GetDriverId()
@@ -115,51 +94,11 @@ func (s *Service) RegisterDriver(req *driverpb.RegisterDriverRequest) (*driverpb
 	return driver, nil
 }
 
-func (s *Service) HandleTripCreated(ctx context.Context, event *eventcontracts.TripCreatedEvent) error {
-	_ = ctx
-
-	request := tripCreatedEventToRequest(event)
-	log.Printf("driver service consumed trip request: %+v", request)
-	return nil
-}
-
-func tripCreatedEventToRequest(event *eventcontracts.TripCreatedEvent) TripRequest {
-	if event == nil {
-		return TripRequest{}
-	}
-
-	return TripRequest{
-		TripID:      event.TripID,
-		RiderID:     event.UserID,
-		Status:      event.Status,
-		PackageSlug: event.Fare.PackageSlug,
-		Pickup: Coordinate{
-			Latitude:  event.Pickup.Latitude,
-			Longitude: event.Pickup.Longitude,
-		},
-		Dropoff: Coordinate{
-			Latitude:  event.Dropoff.Latitude,
-			Longitude: event.Dropoff.Longitude,
-		},
-		Route:           eventRouteToLocalCoordinates(event.Route.Geometry),
-		DistanceMeters:  event.DistanceMeters,
-		DurationSeconds: event.DurationSeconds,
-	}
-}
-
-func eventRouteToLocalCoordinates(route []eventcontracts.Coordinate) []Coordinate {
-	coordinates := make([]Coordinate, 0, len(route))
-	for _, coordinate := range route {
-		coordinates = append(coordinates, Coordinate{
-			Latitude:  coordinate.Latitude,
-			Longitude: coordinate.Longitude,
-		})
-	}
-
-	return coordinates
-}
-
 func (s *Service) UnregisterDriver(req *driverpb.RegisterDriverRequest) (*driverpb.Driver, error) {
+	if req == nil {
+		return nil, errs.New(errs.InvalidArgument, errors.New("unregister driver request is required"))
+	}
+
 	driverID := req.GetDriverId()
 	packageSlug := req.GetPackageSlug()
 
@@ -188,4 +127,37 @@ func (d *driverInMap) GetDriver() *driverpb.Driver {
 	}
 
 	return d.Driver
+}
+
+// Todo: optimize with geohash and package slug
+func (s *Service) FindAvailableDrivers(packageType string, excludedDriverIDs ...string) []*driverpb.Driver {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	var matchingDrivers []*driverpb.Driver
+	excluded := make(map[string]struct{}, len(excludedDriverIDs))
+	for _, driverID := range excludedDriverIDs {
+		if driverID != "" {
+			excluded[driverID] = struct{}{}
+		}
+	}
+
+	for _, driverinMap := range s.drivers {
+		driver := driverinMap.GetDriver()
+		if driver == nil {
+			continue
+		}
+		if _, skip := excluded[driver.GetId()]; skip {
+			continue
+		}
+		if driver.GetPackageSlug() == packageType {
+			matchingDrivers = append(matchingDrivers, driver)
+		}
+	}
+
+	if len(matchingDrivers) == 0 {
+		return []*driverpb.Driver{}
+	}
+
+	return matchingDrivers
 }

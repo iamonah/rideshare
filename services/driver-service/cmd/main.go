@@ -8,11 +8,11 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/google/uuid"
 	driverservice "github.com/iamonah/rideshare/services/driver-service/internal"
-	"github.com/iamonah/rideshare/services/driver-service/internal/infra/events"
-
 	"github.com/iamonah/rideshare/shared/env"
 	"github.com/iamonah/rideshare/shared/messaging"
+	"github.com/iamonah/rideshare/shared/proto/pb/driverpb"
 	grpcserver "google.golang.org/grpc"
 )
 
@@ -54,9 +54,13 @@ func main() {
 	defer rabbitClient.Close()
 	log.Println("starting RabbitMQ client...")
 
-	tripConsumer := events.NewTripConsumer(rabbitClient)
-	svc := driverservice.NewService(tripConsumer)
-	if err := svc.RegisterEventConsumers(ctx); err != nil {
+	svc := driverservice.NewService()
+	svc.RegisterDriver(&driverpb.RegisterDriverRequest{
+		DriverId:    uuid.NewString(),
+		PackageSlug: "suv",
+	})
+	tripConsumer := driverservice.NewTripConsumer(rabbitClient, svc)
+	if err := tripConsumer.ListenConsumer(ctx); err != nil {
 		log.Fatalf("failed to register event consumers: %v", err)
 	}
 
