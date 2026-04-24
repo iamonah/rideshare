@@ -7,12 +7,12 @@ import (
 )
 
 type AppError struct {
-	Code     ErrCode     
-	Message  string      
-	Err      error       
-	Fields   FieldErrors 
-	FuncName string      
-	FileName string      
+	Code     ErrCode
+	Message  string
+	Err      error
+	Fields   FieldErrors
+	FuncName string
+	FileName string
 }
 
 func (e *AppError) Error() string {

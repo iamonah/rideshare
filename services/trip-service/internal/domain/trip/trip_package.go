@@ -31,7 +31,7 @@ func ParsePackageSlug(s string) (PackageSlug, bool) {
 	return ps, ok
 }
 
-//“The driver service is the source of truth for live driver data, but 
+// “The driver service is the source of truth for live driver data, but
 // my trip service owns its own local representation of the driver data it needs.”
 type AssignedDriverSnapshot struct {
 	ID          string `bson:"id" json:"id"`
