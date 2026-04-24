@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/iamonah/rideshare/shared/contracts"
 	eventcontracts "github.com/iamonah/rideshare/shared/contracts/events"
 	"github.com/iamonah/rideshare/shared/messaging"
 )
@@ -34,15 +33,15 @@ func (c *TripConsumer) ListenConsumer(ctx context.Context) error {
 		return fmt.Errorf("driver service is required")
 	}
 
-	err := c.rabbitmq.Consume(ctx, contracts.DriverTripEventsQueue, func(ctx context.Context, msg messaging.Message) error {
+	err := c.rabbitmq.Consume(ctx, messaging.DriverTripEventsQueue, func(ctx context.Context, msg messaging.Message) error {
 		switch msg.RoutingKey {
-		case contracts.TripEventCreated, contracts.DriverEventDriverNotInterested:
+		case messaging.TripEventCreated, messaging.DriverEventDriverNotInterested:
 		default:
 			log.Printf("ignoring unsupported driver matching event: %s", msg.RoutingKey)
 			return nil
 		}
 
-		var envelope contracts.AmqpMessage
+		var envelope messaging.AmqpMessage
 		if err := json.Unmarshal(msg.Body, &envelope); err != nil {
 			return fmt.Errorf("decode amqp message envelope: %w", err)
 		}
@@ -74,7 +73,7 @@ func (c *TripConsumer) HandleFindAndNotifyDriver(ctx context.Context, event *eve
 		if err != nil {
 			return fmt.Errorf("marshal no drivers found event: %w", err)
 		}
-		if err := c.rabbitmq.Publish(ctx, contracts.DriverEventsExchange, contracts.DriverEventNoDriversFound, contracts.AmqpMessage{
+		if err := c.rabbitmq.Publish(ctx, messaging.DriverEventsExchange, messaging.DriverEventNoDriversFound, messaging.AmqpMessage{
 			OwnerID: event.UserID,
 			Data:    data,
 		}); err != nil {
@@ -98,7 +97,7 @@ func (c *TripConsumer) HandleFindAndNotifyDriver(ctx context.Context, event *eve
 	}
 
 	log.Printf("publishing trip request command for driver: %s", suitableDriver.GetId())
-	if err := c.rabbitmq.Publish(ctx, contracts.DriverCommandsExchange, contracts.DriverCmdTripRequest, contracts.AmqpMessage{
+	if err := c.rabbitmq.Publish(ctx, messaging.DriverCommandsExchange, messaging.DriverCmdTripRequest, messaging.AmqpMessage{
 		OwnerID: suitableDriver.GetId(),
 		Data:    data,
 	}); err != nil {

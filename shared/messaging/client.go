@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/url"
 
-	"github.com/iamonah/rideshare/shared/contracts"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -83,7 +82,7 @@ func (rm *RabbitMQClient) logReturnedMessages() {
 	}()
 }
 
-func (rm *RabbitMQClient) Publish(ctx context.Context, exchange, routingKey string, msg contracts.AmqpMessage) error {
+func (rm *RabbitMQClient) Publish(ctx context.Context, exchange, routingKey string, msg AmqpMessage) error {
 	log.Printf("publishing messages with routing key: %s", routingKey)
 	body, err := json.Marshal(msg)
 	if err != nil {

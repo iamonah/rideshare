@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	tripdomain "github.com/iamonah/rideshare/services/trip-service/internal/domain/trip"
-	"github.com/iamonah/rideshare/shared/contracts"
 	eventcontracts "github.com/iamonah/rideshare/shared/contracts/events"
 	"github.com/iamonah/rideshare/shared/messaging"
 )
@@ -32,7 +31,7 @@ func (p *TripEventPublisher) PublishTripCreated(ctx context.Context, trip *tripd
 		return fmt.Errorf("marshal trip created event: %w", err)
 	}
 
-	return p.rabbitmq.Publish(ctx, contracts.TripEventsExchange, contracts.TripEventCreated, contracts.AmqpMessage{
+	return p.rabbitmq.Publish(ctx, messaging.TripEventsExchange, messaging.TripEventCreated, messaging.AmqpMessage{
 		OwnerID: trip.UserID,
 		Data:    jsonData,
 	})

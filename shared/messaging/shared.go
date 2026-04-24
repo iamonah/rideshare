@@ -1,78 +1,76 @@
 package messaging
 
-import "github.com/iamonah/rideshare/shared/contracts"
-
 func sharedTopologySetup() Topology {
 	return Topology{
 		Exchanges: []ExchangeSpec{
 			{
-				Name:    contracts.TripEventsExchange,
+				Name:    TripEventsExchange,
 				Kind:    TopicExchangeKind,
 				Durable: true,
 			},
 			{
-				Name:    contracts.DriverCommandsExchange,
+				Name:    DriverCommandsExchange,
 				Kind:    TopicExchangeKind,
 				Durable: true,
 			},
 			{
-				Name:    contracts.DriverEventsExchange,
+				Name:    DriverEventsExchange,
 				Kind:    TopicExchangeKind,
 				Durable: true,
 			},
 			{
-				Name:    contracts.PaymentEventsExchange,
+				Name:    PaymentEventsExchange,
 				Kind:    TopicExchangeKind,
 				Durable: true,
 			},
 			{
-				Name:    contracts.PaymentCommandsExchange,
+				Name:    PaymentCommandsExchange,
 				Kind:    TopicExchangeKind,
 				Durable: true,
 			},
 		},
 		Queues: []QueueSpec{
 			{
-				Name:       contracts.DriverTripEventsQueue,
+				Name:       DriverTripEventsQueue,
 				Durable:    true,
 				AutoDelete: false,
 			},
 			{
-				Name:       contracts.DriverTripRequestsQueue,
+				Name:       DriverTripRequestsQueue,
 				Durable:    true,
 				AutoDelete: false,
 			},
 			{
-				Name:       contracts.TripDriverEventsQueue,
+				Name:       TripDriverEventsQueue,
 				Durable:    true,
 				AutoDelete: false,
 			},
 		},
 		Bindings: []BindingSpec{
 			{
-				Queue:      contracts.DriverTripEventsQueue,
-				Exchange:   contracts.TripEventsExchange,
-				RoutingKey: contracts.TripEventCreated,
+				Queue:      DriverTripEventsQueue,
+				Exchange:   TripEventsExchange,
+				RoutingKey: TripEventCreated,
 			},
 			{
-				Queue:      contracts.DriverTripEventsQueue,
-				Exchange:   contracts.DriverEventsExchange,
-				RoutingKey: contracts.DriverEventDriverNotInterested,
+				Queue:      DriverTripEventsQueue,
+				Exchange:   DriverEventsExchange,
+				RoutingKey: DriverEventDriverNotInterested,
 			},
 			{
-				Queue:      contracts.DriverTripRequestsQueue,
-				Exchange:   contracts.DriverCommandsExchange,
-				RoutingKey: contracts.DriverCmdTripRequest,
+				Queue:      DriverTripRequestsQueue,
+				Exchange:   DriverCommandsExchange,
+				RoutingKey: DriverCmdTripRequest,
 			},
 			{
-				Queue:      contracts.TripDriverEventsQueue,
-				Exchange:   contracts.DriverEventsExchange,
-				RoutingKey: contracts.DriverEventNoDriversFound,
+				Queue:      TripDriverEventsQueue,
+				Exchange:   DriverEventsExchange,
+				RoutingKey: DriverEventNoDriversFound,
 			},
 			{
-				Queue:      contracts.TripDriverEventsQueue,
-				Exchange:   contracts.DriverEventsExchange,
-				RoutingKey: contracts.DriverEventDriverAssigned,
+				Queue:      TripDriverEventsQueue,
+				Exchange:   DriverEventsExchange,
+				RoutingKey: DriverEventDriverAssigned,
 			},
 		},
 	}
