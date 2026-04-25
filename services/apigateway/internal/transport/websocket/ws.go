@@ -10,9 +10,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	httpcommon "github.com/iamonah/rideshare/services/apigateway/internal/transport/http/common"
 	"github.com/iamonah/rideshare/shared/contracts"
-	"github.com/iamonah/rideshare/shared/proto/pb/driverpb"
 )
 
 var (
@@ -32,28 +30,30 @@ var websocketUpgrader = websocket.Upgrader{
 // Todo: move this to redis or in-memory store to manage connections across multiple instances of the API Gateway
 type ClientList map[string]*Client
 
-type EventHandler func(client *Client, data json.RawMessage) error
+type EventHandler func(client *Client, event contracts.WSMessage) error
 
 type Manager struct {
 	clientsList ClientList
 	sync.Mutex
-	handers map[contracts.Type]EventHandler
+	handers map[string]EventHandler
 }
 
 func NewManager() *Manager {
 	return &Manager{
 		clientsList: make(ClientList),
-		handers:     make(map[contracts.Type]EventHandler),
+		handers:     make(map[string]EventHandler),
 	}
 }
 
-func (m *Manager) RegisterHandler(eventType contracts.Type, handler EventHandler) {
-	m.handers[eventType] = handler
+func (m *Manager) RegisterHandler(eventType []string, handler EventHandler) {
+	for _, et := range eventType {
+		m.handers[et] = handler
+	}
 }
 
 func (m *Manager) routeEventHandler(c *Client, event contracts.WSMessage) error {
 	if handler, ok := m.handers[event.Type]; ok {
-		if err := handler(c, event.Data); err != nil {
+		if err := handler(c, event); err != nil {
 			log.Printf("error handling event: %v", err)
 			return err
 		}
@@ -73,16 +73,34 @@ func (m *Manager) addClient(id string, client *Client) {
 	m.clientsList[id] = client
 }
 
-func (m *Manager) removeClient(id string) {
+func (m *Manager) getClient(id string) (*Client, bool) {
 	m.Lock()
 	defer m.Unlock()
 
-	if _, ok := m.clientsList[id]; !ok {
-		return
+	client, ok := m.clientsList[id]
+	return client, ok
+}
+
+func (m *Manager) SendToClient(id string, event contracts.WSMessage) error {
+	client, ok := m.getClient(id)
+	if !ok {
+		return ErrConnectionNotFound
 	}
 
-	m.clientsList[id].Conn.Close()
-	delete(m.clientsList, id)
+	return client.Send(event)
+}
+
+func (m *Manager) removeClient(id string) {
+	m.Lock()
+	client, ok := m.clientsList[id]
+	if ok {
+		delete(m.clientsList, id)
+	}
+	m.Unlock()
+
+	if ok {
+		client.Close()
+	}
 }
 
 type EventRouter func(client *Client, event contracts.WSMessage) error
@@ -92,7 +110,8 @@ func NewClient(conn *websocket.Conn, id string, onEvent EventRouter, onClose Cli
 	return &Client{
 		Conn:    conn,
 		ID:      id,
-		Egress:  make(chan []byte),
+		Egress:  make(chan contracts.WSMessage),
+		done:    make(chan struct{}),
 		onEvent: onEvent,
 		onClose: onClose,
 	}
@@ -101,16 +120,33 @@ func NewClient(conn *websocket.Conn, id string, onEvent EventRouter, onClose Cli
 type Client struct {
 	Conn    *websocket.Conn
 	ID      string
-	Egress  chan []byte
+	Egress  chan contracts.WSMessage
+	done    chan struct{}
+	once    sync.Once
 	onEvent EventRouter
 	onClose ClientCloseHandler
 }
 
+func (c *Client) Close() {
+	c.once.Do(func() {
+		close(c.done)
+		_ = c.Conn.Close()
+	})
+}
+
+func (c *Client) Send(event contracts.WSMessage) error {
+	select {
+	case <-c.done:
+		return ErrConnectionNotFound
+	case c.Egress <- event:
+		return nil
+	}
+}
+
 func (c *Client) ReadMessage() {
 	defer func() {
-		close(c.Egress)
 		if c.onClose != nil {
-			c.onClose(c.ID) //removes the client and closes the connection
+			c.onClose(c.ID)
 		}
 	}()
 
@@ -147,78 +183,30 @@ func (c *Client) ReadMessage() {
 }
 
 func (c *Client) WriteMessage() {
+	ticker := time.NewTicker(pinggInterval)
+	defer func() {
+		ticker.Stop()
+	}()
 
-}
-
-func (h *Handler) HandleDriversWebsocket(w http.ResponseWriter, r *http.Request) {
-	userID := r.URL.Query().Get("userID")
-	if userID == "" {
-		log.Println("Missing userID in query parameters")
-		http.Error(w, "missing userID", http.StatusBadRequest)
-		return
+	for {
+		select {
+		case <-c.done:
+			return
+		case v := <-c.Egress:
+			bytes, err := json.Marshal(v)
+			if err != nil {
+				log.Printf("error marshaling message for client %s: %v", c.ID, err)
+				return
+			}
+			if err := c.Conn.WriteMessage(websocket.TextMessage, bytes); err != nil {
+				log.Printf("error writing message to client %s: %v", c.ID, err)
+				return
+			}
+		case <-ticker.C:
+			if err := c.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				log.Printf("error sending ping to client %s: %v", c.ID, err)
+				return
+			}
+		}
 	}
-
-	packageSlug := r.URL.Query().Get("packageSlug")
-
-	conn, err := websocketUpgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Println("Websocket upgrade error:", err)
-		http.Error(w, "failed to upgrade websocket connection", http.StatusBadRequest)
-		return
-	}
-
-	data, err := h.driverClient.RegisterDriver(r.Context(), &driverpb.RegisterDriverRequest{
-		DriverId:    userID,
-		PackageSlug: packageSlug,
-	})
-
-	if err != nil {
-		httpcommon.WriteUpstreamGRPCError(w, "driver_service", err)
-		conn.Close()
-		return
-	}
-
-	payload, err := json.Marshal(data)
-	if err != nil {
-		log.Printf("Failed to marshal registration message for driver %s: %v", userID, err)
-		conn.Close()
-		return
-	}
-
-	msg := contracts.WSMessage{
-		Type: contracts.Type("register_driver"),
-		Data: payload,
-	}
-
-	// Todo: unregister the driver when the connection is closed
-	if err := conn.WriteJSON(msg); err != nil {
-		log.Printf("Failed to send registration message to driver %s: %v", userID, err)
-		conn.Close()
-	}
-
-	client := NewClient(conn, userID, h.Manager.routeEventHandler, h.Manager.removeClient)
-	h.Manager.addClient(userID, client)
-	go client.ReadMessage()
-	go client.WriteMessage()
-}
-
-func (h *Handler) HandleRidersWebsocket(w http.ResponseWriter, r *http.Request) {
-	userID := r.URL.Query().Get("userID")
-	if userID == "" {
-		log.Println("Missing userID in query parameters")
-		http.Error(w, "missing userID", http.StatusBadRequest)
-		return
-	}
-
-	conn, err := websocketUpgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Println("Websocket upgrade error:", err)
-		http.Error(w, "failed to upgrade websocket connection", http.StatusBadRequest)
-		return
-	}
-
-	client := NewClient(conn, userID, h.Manager.routeEventHandler, h.Manager.removeClient)
-	h.Manager.addClient(userID, client)
-	go client.ReadMessage()
-	go client.WriteMessage()
 }

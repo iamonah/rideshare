@@ -9,11 +9,13 @@ import (
 	tripapp "github.com/iamonah/rideshare/services/apigateway/internal/app/trip"
 	httpcommon "github.com/iamonah/rideshare/services/apigateway/internal/transport/http/common"
 	websockettransport "github.com/iamonah/rideshare/services/apigateway/internal/transport/websocket"
+	"github.com/iamonah/rideshare/shared/messaging"
 )
 
 type Dependencies struct {
 	Trips      tripapp.Upstream
 	Websockets *websockettransport.Handler
+	rabbitmq   *messaging.RabbitMQClient
 }
 
 func NewRouter(deps Dependencies) http.Handler {

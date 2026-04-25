@@ -15,6 +15,7 @@ import (
 	httptransport "github.com/iamonah/rideshare/services/apigateway/internal/transport/http"
 	websockettransport "github.com/iamonah/rideshare/services/apigateway/internal/transport/websocket"
 	"github.com/iamonah/rideshare/shared/env"
+	"github.com/iamonah/rideshare/shared/messaging"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -23,6 +24,12 @@ var (
 	httpAddr          = env.GetString("HTTP_ADDR", ":8081")
 	tripServiceAddr   = env.GetString("TRIP_SERVICE_GRPC_URL", "")
 	driverServiceAddr = env.GetString("DRIVER_SERVICE_GRPC_URL", "")
+
+	rabbitUsername = env.GetString("RABBITMQ_DEFAULT_USER", "")
+	rabbitPassword = env.GetString("RABBITMQ_DEFAULT_PASS", "")
+	rabbitHost     = env.GetString("RABBITMQ_HOST", "")
+	rabbitVhost    = env.GetString("RABBITMQ_VHOST", "")
+	rabbitPort     = env.GetInt("RABBITMQ_PORT", 5672)
 )
 
 func main() {
@@ -50,7 +57,23 @@ func main() {
 	}
 	defer driverClient.Close()
 
-	websocketHandler := websockettransport.NewHandler(driverClient)
+	rabbitClient, err := messaging.NewRabbitMQClient(messaging.RabbitMqConfig{
+		Username: rabbitUsername,
+		Password: rabbitPassword,
+		Host:     rabbitHost,
+		Vhost:    rabbitVhost,
+		Port:     int16(rabbitPort),
+	})
+	if err != nil {
+		log.Fatalf("failed to connect to RabbitMQ: %v", err)
+	}
+	defer rabbitClient.Close()
+	log.Println("starting RabbitMQ client...")
+	websocketHandler := websockettransport.NewHandler(driverClient, rabbitClient)
+	err = websocketHandler.ListenDriverTripRequestsQueue(context.Background())
+	if err != nil {
+		log.Fatalf("failed to listen on driver trip requests queue: %v", err)
+	}
 
 	log.Println("Listening on", httpAddr)
 
