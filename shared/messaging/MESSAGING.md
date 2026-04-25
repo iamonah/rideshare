@@ -70,6 +70,7 @@ payment.cmd.create_session
 ```text
 driver.trip-events.queue
 driver.trip-requests.queue
+rider.events.queue
 trip.driver-events.queue
 trip.driver-commands.queue
 ```
@@ -80,6 +81,9 @@ that driver-service reacts to, such as `trip.event.created`.
 `driver.trip-requests.queue` is a driver-facing delivery queue. The technical
 consumer may be the API gateway websocket layer, but the business audience is the
 driver.
+
+`rider.events.queue` is a rider-facing delivery queue. The technical consumer may
+be the API gateway websocket layer, but the business audience is the rider.
 
 `trip.driver-events.queue` is consumed by trip-service. It carries driver events
 that trip-service reacts to, such as `driver.event.no_drivers_found`.
@@ -94,7 +98,10 @@ trip.events     + trip.event.created                 -> driver.trip-events.queue
 driver.events   + driver.event.driver_not_interested -> driver.trip-events.queue
 driver.commands + driver.cmd.trip_request            -> driver.trip-requests.queue
 driver.events   + driver.event.no_drivers_found      -> trip.driver-events.queue
+driver.events   + driver.event.no_drivers_found      -> rider.events.queue
 driver.events   + driver.event.driver_assigned       -> trip.driver-events.queue
+driver.events   + driver.event.driver_assigned       -> rider.events.queue
+payment.events  + payment.event.session_created      -> rider.events.queue
 driver.commands + driver.cmd.trip_accept             -> trip.driver-commands.queue
 driver.commands + driver.cmd.trip_decline            -> trip.driver-commands.queue
 ```
