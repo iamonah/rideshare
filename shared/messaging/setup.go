@@ -1,8 +1,6 @@
 package messaging
 
 import (
-	"fmt"
-
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -19,11 +17,11 @@ const (
 )
 
 func (rm *RabbitMQClient) setupDeadLetterInfrastructure() error {
-	if err := rm.declareExchange(DeadLetterExchange, TopicExchangeKind); err != nil {
-		return fmt.Errorf("setup exchange %q: %w", DeadLetterExchange, err)
+	if err := rm.setupTopicExchange(DeadLetterExchange); err != nil {
+		return err
 	}
 
-	if err := rm.declareQueueAndBind(DeadLetterExchange, DeadLetterQueue, []string{
+	if err := rm.setupQueueBindings(DeadLetterExchange, DeadLetterQueue, []string{
 		DeadLetterBindingKey,
 	}, amqp.Table{
 		// Keep this explicit so redeclares match existing broker state.
@@ -33,7 +31,7 @@ func (rm *RabbitMQClient) setupDeadLetterInfrastructure() error {
 		// Expire messages from the DLQ after 60 seconds instead of re-dead-lettering them.
 		"x-message-ttl": int32(60000),
 	}); err != nil {
-		return fmt.Errorf("setup queue %q on %q: %w", DeadLetterQueue, DeadLetterExchange, err)
+		return err
 	}
 
 	return nil
