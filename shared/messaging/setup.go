@@ -1,6 +1,10 @@
 package messaging
 
-import amqp "github.com/rabbitmq/amqp091-go"
+import (
+	"fmt"
+
+	amqp "github.com/rabbitmq/amqp091-go"
+)
 
 const (
 	//exchange kind
@@ -14,24 +18,23 @@ const (
 	DeadLetterBindingKey = "#"
 )
 
-func DeadLetterTopology() Topology {
-	return Topology{
-		Exchanges: []ExchangeSpec{
-			{Name: DeadLetterExchange, Kind: TopicExchangeKind, Durable: true},
-		},
-		Queues: []QueueSpec{
-			{Name: DeadLetterQueue, Durable: true, AutoDelete: false, Args: amqp.Table{
-				// Keep this explicit so redeclares match existing broker state.
-				"x-dead-letter-exchange": "",
-				// Keep this explicit so redeclares match existing broker state.
-				"x-dead-letter-routing-key": "",
-				// Expire messages from the DLQ after 60 seconds instead of re-dead-lettering them.
-				"x-message-ttl": int32(60000),
-			},
-			},
-		},
-		Bindings: []BindingSpec{
-			{Queue: DeadLetterQueue, Exchange: DeadLetterExchange, RoutingKey: DeadLetterBindingKey},
-		},
+func (rm *RabbitMQClient) setupDeadLetterInfrastructure() error {
+	if err := rm.declareExchange(DeadLetterExchange, TopicExchangeKind); err != nil {
+		return fmt.Errorf("setup exchange %q: %w", DeadLetterExchange, err)
 	}
+
+	if err := rm.declareQueueAndBind(DeadLetterExchange, DeadLetterQueue, []string{
+		DeadLetterBindingKey,
+	}, amqp.Table{
+		// Keep this explicit so redeclares match existing broker state.
+		"x-dead-letter-exchange": "",
+		// Keep this explicit so redeclares match existing broker state.
+		"x-dead-letter-routing-key": "",
+		// Expire messages from the DLQ after 60 seconds instead of re-dead-lettering them.
+		"x-message-ttl": int32(60000),
+	}); err != nil {
+		return fmt.Errorf("setup queue %q on %q: %w", DeadLetterQueue, DeadLetterExchange, err)
+	}
+
+	return nil
 }

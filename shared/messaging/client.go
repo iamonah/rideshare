@@ -45,10 +45,11 @@ func NewRabbitMQClient(config RabbitMqConfig) (*RabbitMQClient, error) {
 	}
 	rc.logReturnedMessages()
 
-	if err = rc.BootstrapTopology(DeadLetterTopology()); err != nil {
+	if err = rc.setupDeadLetterInfrastructure(); err != nil {
 		return nil, fmt.Errorf("bootstrap dead letter infrastructure: %w", err)
 	}
-	if err = rc.BootstrapTopology(sharedTopologySetup()); err != nil {
+
+	if err = rc.setupSharedInfrastructure(); err != nil {
 		return nil, fmt.Errorf("bootstrap shared broker infrastructure: %w", err)
 	}
 	return &rc, nil
