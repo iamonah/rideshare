@@ -22,7 +22,7 @@ func NewTripConsumer(rabbitmq *messaging.RabbitMQClient, s *Service) *TripConsum
 	}
 }
 
-func (c *TripConsumer) ListenConsumer(ctx context.Context) error {
+func (c *TripConsumer) ListenDriverTripEventsQueue(ctx context.Context) error {
 	if c == nil {
 		return fmt.Errorf("trip consumer is required")
 	}
@@ -34,28 +34,29 @@ func (c *TripConsumer) ListenConsumer(ctx context.Context) error {
 	}
 
 	err := c.rabbitmq.Consume(ctx, messaging.DriverTripEventsQueue, func(ctx context.Context, msg messaging.Message) error {
-		switch msg.RoutingKey {
-		case messaging.TripEventCreated, messaging.DriverEventDriverNotInterested:
-		default:
-			log.Printf("ignoring unsupported driver matching event: %s", msg.RoutingKey)
-			return nil
-		}
-
 		var envelope messaging.AmqpMessage
 		if err := json.Unmarshal(msg.Body, &envelope); err != nil {
 			return fmt.Errorf("decode amqp message envelope: %w", err)
 		}
 
-		var event eventcontracts.TripCreatedEvent
-		if err := json.Unmarshal(envelope.Data, &event); err != nil {
-			return fmt.Errorf("decode trip created event: %w", err)
+		switch msg.RoutingKey {
+		case messaging.TripEventCreated, messaging.DriverEventDriverNotInterested:
+
+			var event eventcontracts.TripCreatedEvent
+			if err := json.Unmarshal(envelope.Data, &event); err != nil {
+				return fmt.Errorf("decode trip created event: %w", err)
+			}
+
+			return c.HandleFindAndNotifyDriver(ctx, &event)
+		default:
+			log.Printf("ignoring unsupported driver matching event: %s", msg.RoutingKey)
+			return nil
 		}
 
-		return c.HandleFindAndNotifyDriver(ctx, &event)
 	})
 
 	if err != nil {
-		return fmt.Errorf("consume trip created event: %w", err)
+		return fmt.Errorf("consume driver trip events queue: %w", err)
 	}
 
 	return nil

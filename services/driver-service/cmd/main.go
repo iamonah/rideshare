@@ -60,7 +60,7 @@ func main() {
 		PackageSlug: "suv",
 	})
 	tripConsumer := driverservice.NewTripConsumer(rabbitClient, svc)
-	if err := tripConsumer.ListenConsumer(ctx); err != nil {
+	if err := tripConsumer.ListenDriverTripEventsQueue(ctx); err != nil {
 		log.Fatalf("failed to register event consumers: %v", err)
 	}
 
