@@ -74,6 +74,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to listen on driver trip requests queue: %v", err)
 	}
+	err = websocketHandler.ListenRiderEventsQueue(context.Background())
+	if err != nil {
+		log.Fatalf("failed to listen on rider events queue: %v", err)
+	}
 
 	log.Println("Listening on", httpAddr)
 

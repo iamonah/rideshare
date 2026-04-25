@@ -120,3 +120,23 @@ func (h *Handler) ListenDriverTripRequestsQueue(ctx context.Context) error {
 		return nil
 	})
 }
+
+func (h *Handler) ListenRiderEventsQueue(ctx context.Context) error {
+	return h.rabbitmq.Consume(ctx, messaging.RiderEventsQueue, func(ctx context.Context, msg messaging.Message) error {
+		var envelope messaging.AmqpMessage
+		if err := json.Unmarshal(msg.Body, &envelope); err != nil {
+			return fmt.Errorf("listenRiderEventsQueue: decode amqp message envelope: %w", err)
+		}
+
+		event := contracts.WSMessage{
+			Type: msg.RoutingKey,
+			Data: envelope.Data,
+		}
+
+		if err := h.Manager.SendToClient(envelope.OwnerID, event); err != nil {
+			return fmt.Errorf("listenRiderEventsQueue: send to rider %s: %w", envelope.OwnerID, err)
+		}
+
+		return nil
+	})
+}
