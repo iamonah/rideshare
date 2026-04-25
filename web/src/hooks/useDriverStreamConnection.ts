@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { WEBSOCKET_URL } from "../constants";
 import { Trip, Driver, CarPackageSlug } from '../types';
-import { ServerWsMessage, TripEvents, isValidWsMessage, isValidTripEvent, ClientWsMessage, BackendEndpoints } from '../contracts';
+import { ServerWsMessage, TripEvents, isValidWsMessage, isValidTripEvent, ClientWsMessage, BackendEndpoints, normalizeDriver, normalizeTrip } from '../contracts';
 
 interface useDriverConnectionProps {
   location: {
@@ -54,11 +54,10 @@ export const useDriverStreamConnection = ({
 
       switch (message.type) {
         case TripEvents.DriverTripRequest:
-          const trip = (message.data?.trip) ?? message.data;
-          setRequestedTrip(trip);
+          setRequestedTrip(normalizeTrip(message.data));
           break;
         case TripEvents.DriverRegister:
-          setDriver(message.data);
+          setDriver(normalizeDriver(message.data));
           break;
       }
 

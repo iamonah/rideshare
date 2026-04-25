@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { WEBSOCKET_URL } from "../constants";
 import { Trip } from '../types';
 import { Driver, Coordinate } from '../types';
-import { PaymentEventSessionCreatedData, TripEvents, ServerWsMessage, isValidWsMessage, BackendEndpoints } from '../contracts';
+import { PaymentEventSessionCreatedData, TripEvents, ServerWsMessage, isValidWsMessage, BackendEndpoints, normalizeTrip } from '../contracts';
 
 export function useRiderStreamConnection(location: Coordinate, userID: string) {
   const [drivers, setDrivers] = useState<Driver[]>([]);
@@ -45,7 +45,7 @@ export function useRiderStreamConnection(location: Coordinate, userID: string) {
           setTripStatus(message.type);
           break;
         case TripEvents.DriverAssigned:
-          setAssignedDriver(message.data.driver);
+          setAssignedDriver(normalizeTrip(message.data).driver);
           setTripStatus(message.type);
           break;
         case TripEvents.Created:
