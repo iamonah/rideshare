@@ -49,6 +49,7 @@ const (
 	// Queues
 	DriverTripEventsQueue   = "driver.trip-events.queue"   // driver-service consumes trip/driver matching events.
 	DriverTripRequestsQueue = "driver.trip-requests.queue" // api-gateway delivers trip requests to connected drivers.
+	RiderEventsQueue        = "rider.events.queue"         // api-gateway delivers trip/payment events to connected riders.
 	TripDriverEventsQueue   = "trip.driver-events.queue"   // trip-service consumes driver-side outcome events.
 	TripDriverCommandsQueue = "trip.driver-commands.queue" // trip-service consumes driver response commands.
 )

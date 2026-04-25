@@ -1,92 +1,77 @@
 package messaging
 
-func sharedTopologySetup() Topology {
-	return Topology{
-		Exchanges: []ExchangeSpec{
-			{
-				Name:    TripEventsExchange,
-				Kind:    TopicExchangeKind,
-				Durable: true,
-			},
-			{
-				Name:    DriverCommandsExchange,
-				Kind:    TopicExchangeKind,
-				Durable: true,
-			},
-			{
-				Name:    DriverEventsExchange,
-				Kind:    TopicExchangeKind,
-				Durable: true,
-			},
-			{
-				Name:    PaymentEventsExchange,
-				Kind:    TopicExchangeKind,
-				Durable: true,
-			},
-			{
-				Name:    PaymentCommandsExchange,
-				Kind:    TopicExchangeKind,
-				Durable: true,
-			},
-		},
-		Queues: []QueueSpec{
-			{
-				Name:       DriverTripEventsQueue,
-				Durable:    true,
-				AutoDelete: false,
-			},
-			{
-				Name:       DriverTripRequestsQueue,
-				Durable:    true,
-				AutoDelete: false,
-			},
-			{
-				Name:       TripDriverEventsQueue,
-				Durable:    true,
-				AutoDelete: false,
-			},
-			{
-				Name:       TripDriverCommandsQueue,
-				Durable:    true,
-				AutoDelete: false,
-			},
-		},
-		Bindings: []BindingSpec{
-			{
-				Queue:      DriverTripEventsQueue,
-				Exchange:   TripEventsExchange,
-				RoutingKey: TripEventCreated,
-			},
-			{
-				Queue:      DriverTripEventsQueue,
-				Exchange:   DriverEventsExchange,
-				RoutingKey: DriverEventDriverNotInterested,
-			},
-			{
-				Queue:      DriverTripRequestsQueue,
-				Exchange:   DriverCommandsExchange,
-				RoutingKey: DriverCmdTripRequest,
-			},
-			{
-				Queue:      TripDriverEventsQueue,
-				Exchange:   DriverEventsExchange,
-				RoutingKey: DriverEventNoDriversFound,
-			},
-			{
-				Queue:      TripDriverEventsQueue,
-				Exchange:   DriverEventsExchange,
-				RoutingKey: DriverEventDriverAssigned,
-			},
-			{
-				Queue:      TripDriverCommandsQueue,
-				Exchange:   DriverCommandsExchange,
-				RoutingKey: DriverCmdTripAccept,
-			},
-			{
-				Queue:      TripDriverCommandsQueue,
-				Exchange:   DriverCommandsExchange,
-				RoutingKey: DriverCmdTripDecline,
-			},
-		},
+import "fmt"
+
+func (rm *RabbitMQClient) setupSharedInfrastructure() error {
+	// Exchanges
+	if err := rm.declareExchange(TripEventsExchange, TopicExchangeKind); err != nil {
+		return fmt.Errorf("setup exchange %q: %w", TripEventsExchange, err)
 	}
+
+	if err := rm.declareExchange(DriverCommandsExchange, TopicExchangeKind); err != nil {
+		return fmt.Errorf("setup exchange %q: %w", DriverCommandsExchange, err)
+	}
+
+	if err := rm.declareExchange(DriverEventsExchange, TopicExchangeKind); err != nil {
+		return fmt.Errorf("setup exchange %q: %w", DriverEventsExchange, err)
+	}
+
+	if err := rm.declareExchange(PaymentEventsExchange, TopicExchangeKind); err != nil {
+		return fmt.Errorf("setup exchange %q: %w", PaymentEventsExchange, err)
+	}
+
+	if err := rm.declareExchange(PaymentCommandsExchange, TopicExchangeKind); err != nil {
+		return fmt.Errorf("setup exchange %q: %w", PaymentCommandsExchange, err)
+	}
+
+	// Trip events
+	if err := rm.declareQueueAndBind(TripEventsExchange, DriverTripEventsQueue, []string{
+		TripEventCreated,
+	}, nil); err != nil {
+		return fmt.Errorf("setup queue %q on %q: %w", DriverTripEventsQueue, TripEventsExchange, err)
+	}
+
+	// Driver commands
+	if err := rm.declareQueueAndBind(DriverCommandsExchange, DriverTripRequestsQueue, []string{
+		DriverCmdTripRequest,
+	}, nil); err != nil {
+		return fmt.Errorf("setup queue %q on %q: %w", DriverTripRequestsQueue, DriverCommandsExchange, err)
+	}
+
+	if err := rm.declareQueueAndBind(DriverCommandsExchange, TripDriverCommandsQueue, []string{
+		DriverCmdTripAccept,
+		DriverCmdTripDecline,
+	}, nil); err != nil {
+		return fmt.Errorf("setup queue %q on %q: %w", TripDriverCommandsQueue, DriverCommandsExchange, err)
+	}
+
+	// Driver events
+	if err := rm.declareQueueAndBind(DriverEventsExchange, DriverTripEventsQueue, []string{
+		DriverEventDriverNotInterested,
+	}, nil); err != nil {
+		return fmt.Errorf("setup queue %q on %q: %w", DriverTripEventsQueue, DriverEventsExchange, err)
+	}
+
+	if err := rm.declareQueueAndBind(DriverEventsExchange, TripDriverEventsQueue, []string{
+		DriverEventNoDriversFound,
+		DriverEventDriverAssigned,
+	}, nil); err != nil {
+		return fmt.Errorf("setup queue %q on %q: %w", TripDriverEventsQueue, DriverEventsExchange, err)
+	}
+
+	if err := rm.declareQueueAndBind(DriverEventsExchange, RiderEventsQueue, []string{
+		DriverEventNoDriversFound,
+		DriverEventDriverAssigned,
+	}, nil); err != nil {
+		return fmt.Errorf("setup queue %q on %q: %w", RiderEventsQueue, DriverEventsExchange, err)
+	}
+
+	// Payment events
+	if err := rm.declareQueueAndBind(PaymentEventsExchange, RiderEventsQueue, []string{
+		PaymentEventSessionCreated,
+	}, nil); err != nil {
+		return fmt.Errorf("setup queue %q on %q: %w", RiderEventsQueue, PaymentEventsExchange, err)
+	}
+
+	return nil
 }
