@@ -71,6 +71,7 @@ payment.cmd.create_session
 driver.trip-events.queue
 driver.trip-requests.queue
 trip.driver-events.queue
+trip.driver-commands.queue
 ```
 
 `driver.trip-events.queue` is consumed by driver-service. It carries trip events
@@ -83,6 +84,9 @@ driver.
 `trip.driver-events.queue` is consumed by trip-service. It carries driver events
 that trip-service reacts to, such as `driver.event.no_drivers_found`.
 
+`trip.driver-commands.queue` is consumed by trip-service. It carries driver
+commands that trip-service reacts to, such as `driver.cmd.trip_accept`.
+
 ## Current Bindings
 
 ```text
@@ -91,6 +95,8 @@ driver.events   + driver.event.driver_not_interested -> driver.trip-events.queue
 driver.commands + driver.cmd.trip_request            -> driver.trip-requests.queue
 driver.events   + driver.event.no_drivers_found      -> trip.driver-events.queue
 driver.events   + driver.event.driver_assigned       -> trip.driver-events.queue
+driver.commands + driver.cmd.trip_accept             -> trip.driver-commands.queue
+driver.commands + driver.cmd.trip_decline            -> trip.driver-commands.queue
 ```
 
 ## Naming Rules

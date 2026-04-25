@@ -45,6 +45,11 @@ func sharedTopologySetup() Topology {
 				Durable:    true,
 				AutoDelete: false,
 			},
+			{
+				Name:       TripDriverCommandsQueue,
+				Durable:    true,
+				AutoDelete: false,
+			},
 		},
 		Bindings: []BindingSpec{
 			{
@@ -71,6 +76,16 @@ func sharedTopologySetup() Topology {
 				Queue:      TripDriverEventsQueue,
 				Exchange:   DriverEventsExchange,
 				RoutingKey: DriverEventDriverAssigned,
+			},
+			{
+				Queue:      TripDriverCommandsQueue,
+				Exchange:   DriverCommandsExchange,
+				RoutingKey: DriverCmdTripAccept,
+			},
+			{
+				Queue:      TripDriverCommandsQueue,
+				Exchange:   DriverCommandsExchange,
+				RoutingKey: DriverCmdTripDecline,
 			},
 		},
 	}

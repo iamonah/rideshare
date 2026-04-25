@@ -103,8 +103,8 @@ func (rm *RabbitMQClient) Publish(ctx context.Context, exchange, routingKey stri
 }
 
 type Message struct {
-	Body       []byte
-	RoutingKey string
+	Body       []byte `json:"data"`
+	RoutingKey string `json:"routing_key"`
 }
 
 type MessageHandler func(ctx context.Context, msg Message) error
