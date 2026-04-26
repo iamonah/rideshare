@@ -1,4 +1,4 @@
-package trip
+package app
 
 import "github.com/iamonah/rideshare/shared/types"
 

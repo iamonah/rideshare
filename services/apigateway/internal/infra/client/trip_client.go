@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log"
 
-	apptrip "github.com/iamonah/rideshare/services/apigateway/internal/app/trip"
+	"github.com/iamonah/rideshare/services/apigateway/internal/app"
 	"github.com/iamonah/rideshare/shared/proto/pb/trippb"
 	"github.com/iamonah/rideshare/shared/types"
 	"google.golang.org/grpc"
@@ -33,7 +33,7 @@ func NewClient(url string, opts ...grpc.DialOption) (*Client, error) {
 	}, nil
 }
 
-func (c *Client) PreviewTrip(ctx context.Context, input apptrip.PreviewTripInput) (*apptrip.PreviewTripOutput, error) {
+func (c *Client) PreviewTrip(ctx context.Context, input app.PreviewTripInput) (*app.PreviewTripOutput, error) {
 	req := toPreviewTripProto(input)
 
 	resp, err := c.client.PreviewTrip(ctx, req)
@@ -45,7 +45,7 @@ func (c *Client) PreviewTrip(ctx context.Context, input apptrip.PreviewTripInput
 	return toPreviewTripOutput(resp), nil
 }
 
-func (c *Client) CreateTrip(ctx context.Context, input apptrip.CreateTripInput) (*apptrip.CreateTripOutput, error) {
+func (c *Client) CreateTrip(ctx context.Context, input app.CreateTripInput) (*app.CreateTripOutput, error) {
 	req := toCreateTripProto(input)
 
 	resp, err := c.client.CreateTrip(ctx, req)
@@ -67,25 +67,25 @@ func (c *Client) Close() error {
 	return nil
 }
 
-func toCreateTripProto(input apptrip.CreateTripInput) *trippb.CreateTripRequest {
+func toCreateTripProto(input app.CreateTripInput) *trippb.CreateTripRequest {
 	return &trippb.CreateTripRequest{
 		RideFareId: input.RideFareID,
 		UserId:     input.UserID,
 	}
 }
 
-func toCreateTripOutput(resp *trippb.CreateTripResponse) *apptrip.CreateTripOutput {
+func toCreateTripOutput(resp *trippb.CreateTripResponse) *app.CreateTripOutput {
 	if resp == nil {
-		return &apptrip.CreateTripOutput{}
+		return &app.CreateTripOutput{}
 	}
 
-	return &apptrip.CreateTripOutput{
+	return &app.CreateTripOutput{
 		TripID: resp.GetTripId(),
 		Trip:   toTrip(resp.GetTrip()),
 	}
 }
 
-func toPreviewTripProto(input apptrip.PreviewTripInput) *trippb.PreviewTripRequest {
+func toPreviewTripProto(input app.PreviewTripInput) *trippb.PreviewTripRequest {
 	return &trippb.PreviewTripRequest{
 		UserId: input.UserID,
 		Pickup: &trippb.Coordinate{
@@ -99,19 +99,19 @@ func toPreviewTripProto(input apptrip.PreviewTripInput) *trippb.PreviewTripReque
 	}
 }
 
-func toPreviewTripOutput(resp *trippb.PreviewTripResponse) *apptrip.PreviewTripOutput {
+func toPreviewTripOutput(resp *trippb.PreviewTripResponse) *app.PreviewTripOutput {
 	if resp == nil {
-		return &apptrip.PreviewTripOutput{}
+		return &app.PreviewTripOutput{}
 	}
 
-	output := &apptrip.PreviewTripOutput{
+	output := &app.PreviewTripOutput{
 		TripID:    resp.GetTripId(),
 		Route:     toRoute(resp.GetRoute()),
-		RideFares: make([]apptrip.PreviewRideFare, 0, len(resp.GetRideFares())),
+		RideFares: make([]app.PreviewRideFare, 0, len(resp.GetRideFares())),
 	}
 
 	for _, fare := range resp.GetRideFares() {
-		output.RideFares = append(output.RideFares, apptrip.PreviewRideFare{
+		output.RideFares = append(output.RideFares, app.PreviewRideFare{
 			ID:                fare.GetId(),
 			UserID:            fare.GetUserId(),
 			PackageSlug:       fare.GetPackageSlug(),
@@ -123,12 +123,12 @@ func toPreviewTripOutput(resp *trippb.PreviewTripResponse) *apptrip.PreviewTripO
 	return output
 }
 
-func toTrip(trip *trippb.Trip) *apptrip.Trip {
+func toTrip(trip *trippb.Trip) *app.Trip {
 	if trip == nil {
 		return nil
 	}
 
-	return &apptrip.Trip{
+	return &app.Trip{
 		ID:           trip.GetId(),
 		SelectedFare: toRideFare(trip.GetSelectedFare()),
 		Route:        toRoute(trip.GetRoute()),
@@ -138,12 +138,12 @@ func toTrip(trip *trippb.Trip) *apptrip.Trip {
 	}
 }
 
-func toRideFare(fare *trippb.RideFare) *apptrip.RideFare {
+func toRideFare(fare *trippb.RideFare) *app.RideFare {
 	if fare == nil {
 		return nil
 	}
 
-	return &apptrip.RideFare{
+	return &app.RideFare{
 		ID:                fare.GetId(),
 		UserID:            fare.GetUserId(),
 		PackageSlug:       fare.GetPackageSlug(),
@@ -152,12 +152,12 @@ func toRideFare(fare *trippb.RideFare) *apptrip.RideFare {
 	}
 }
 
-func toTripDriver(driver *trippb.TripDriver) *apptrip.TripDriver {
+func toTripDriver(driver *trippb.TripDriver) *app.TripDriver {
 	if driver == nil {
 		return nil
 	}
 
-	return &apptrip.TripDriver{
+	return &app.TripDriver{
 		ID:             driver.GetId(),
 		Name:           driver.GetName(),
 		ProfilePicture: driver.GetProfilePicture(),
@@ -165,12 +165,12 @@ func toTripDriver(driver *trippb.TripDriver) *apptrip.TripDriver {
 	}
 }
 
-func toRoute(route *trippb.Route) apptrip.Route {
+func toRoute(route *trippb.Route) app.Route {
 	if route == nil {
-		return apptrip.Route{}
+		return app.Route{}
 	}
 
-	geometry := make([]*apptrip.Geometry, 0, len(route.GetGeometry()))
+	geometry := make([]*app.Geometry, 0, len(route.GetGeometry()))
 	for _, segment := range route.GetGeometry() {
 		coordinates := make([]*types.Coordinate, 0, len(segment.GetCoordinates()))
 		for _, coordinate := range segment.GetCoordinates() {
@@ -180,12 +180,12 @@ func toRoute(route *trippb.Route) apptrip.Route {
 			})
 		}
 
-		geometry = append(geometry, &apptrip.Geometry{
+		geometry = append(geometry, &app.Geometry{
 			Coordinates: coordinates,
 		})
 	}
 
-	return apptrip.Route{
+	return app.Route{
 		Distance: route.GetDistance(),
 		Duration: route.GetDuration(),
 		Geometry: geometry,

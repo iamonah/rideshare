@@ -23,3 +23,10 @@ func (h *Handler) ReceiveDriverEvents(client *Client, event contracts.WSMessage)
 		return fmt.Errorf("unknown driver event type: %s", event.Type)
 	}
 }
+
+func (h *Handler) ReceiveRiderEvents(client *Client, event contracts.WSMessage) error {
+	switch event.Type {
+	// Handle rider events in the future
+	}
+	return nil
+}

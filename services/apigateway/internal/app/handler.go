@@ -1,4 +1,4 @@
-package trip
+package app
 
 import (
 	"context"
@@ -14,11 +14,11 @@ import (
 )
 
 type Handler struct {
-	upstream Upstream
+	tripupstream TripUpstream
 }
 
-func NewHandler(upstream Upstream) *Handler {
-	return &Handler{upstream: upstream}
+func NewHandler(tripupstream TripUpstream) *Handler {
+	return &Handler{tripupstream: tripupstream}
 }
 
 func (h *Handler) HandlePreview(w http.ResponseWriter, r *http.Request) {
@@ -41,7 +41,7 @@ func (h *Handler) HandlePreview(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 	defer cancel()
 
-	body, err := h.upstream.PreviewTrip(ctx, reqBody)
+	body, err := h.tripupstream.PreviewTrip(ctx, reqBody)
 	if err != nil {
 		if writeErr := httpcommon.WriteUpstreamGRPCError(w, "trip service", err); writeErr != nil {
 			log.Printf("failed to write preview trip upstream error response: %v", writeErr)
@@ -82,7 +82,7 @@ func (h *Handler) HandleCreate(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 	defer cancel()
 
-	body, err := h.upstream.CreateTrip(ctx, reqBody)
+	body, err := h.tripupstream.CreateTrip(ctx, reqBody)
 	if err != nil {
 		if writeErr := httpcommon.WriteUpstreamGRPCError(w, "trip service", err); writeErr != nil {
 			log.Printf("failed to write create trip upstream error response: %v", writeErr)

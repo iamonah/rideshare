@@ -4,16 +4,14 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	driverapp "github.com/iamonah/rideshare/services/apigateway/internal/app/driver"
-	paymentapp "github.com/iamonah/rideshare/services/apigateway/internal/app/payment"
-	tripapp "github.com/iamonah/rideshare/services/apigateway/internal/app/trip"
+	"github.com/iamonah/rideshare/services/apigateway/internal/app"
 	httpcommon "github.com/iamonah/rideshare/services/apigateway/internal/transport/http/common"
 	websockettransport "github.com/iamonah/rideshare/services/apigateway/internal/transport/websocket"
 	"github.com/iamonah/rideshare/shared/messaging"
 )
 
 type Dependencies struct {
-	Trips      tripapp.Upstream
+	Handlers   app.TripUpstream
 	Websockets *websockettransport.Handler
 	rabbitmq   *messaging.RabbitMQClient
 }
@@ -21,9 +19,7 @@ type Dependencies struct {
 func NewRouter(deps Dependencies) http.Handler {
 	router := mux.NewRouter()
 
-	tripapp.RegisterRoutes(router, tripapp.NewHandler(deps.Trips))
-	driverapp.RegisterRoutes(router, driverapp.NewHandler())
-	paymentapp.RegisterRoutes(router, paymentapp.NewHandler())
+	app.RegisterRoutes(router, app.NewHandler(deps.Handlers))
 	websockettransport.RegisterRoutes(router, deps.Websockets)
 
 	return httpcommon.WithCORS(router)

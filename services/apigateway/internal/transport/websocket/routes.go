@@ -13,8 +13,13 @@ var driverEventTypes = []string{
 	messaging.DriverCmdTripDecline,
 }
 
+var riderEventTypes = []string{
+	// Define rider event types in the future
+}
+
 func RegisterRoutes(r *mux.Router, handler *Handler) {
 	handler.Manager.RegisterHandler(driverEventTypes, handler.ReceiveDriverEvents)
+	handler.Manager.RegisterHandler(riderEventTypes, handler.ReceiveRiderEvents)
 
 	r.HandleFunc("/ws/drivers", handler.HandleDriversWebsocket).Methods(http.MethodGet)
 	r.HandleFunc("/ws/riders", handler.HandleRidersWebsocket).Methods(http.MethodGet)

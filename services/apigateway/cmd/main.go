@@ -84,7 +84,7 @@ func main() {
 	server := &http.Server{
 		Addr: httpAddr,
 		Handler: httptransport.NewRouter(httptransport.Dependencies{
-			Trips: tripClient,
+			Handlers: tripClient,
 			// Drivers:    driverClient,
 			Websockets: websocketHandler,
 		}),

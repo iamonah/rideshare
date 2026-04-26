@@ -1,10 +1,11 @@
-package trip
+package app
 
 import (
 	"context"
 )
 
-type Upstream interface {
+type TripUpstream interface {
 	PreviewTrip(ctx context.Context, input PreviewTripInput) (*PreviewTripOutput, error)
 	CreateTrip(ctx context.Context, input CreateTripInput) (*CreateTripOutput, error)
+	Close() error
 }

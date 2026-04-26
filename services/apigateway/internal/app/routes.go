@@ -1,4 +1,4 @@
-package trip
+package app
 
 import (
 	"net/http"
