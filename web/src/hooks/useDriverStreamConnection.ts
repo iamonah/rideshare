@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { WEBSOCKET_URL } from "../constants";
 import { Trip, Driver, CarPackageSlug } from '../types';
 import { ServerWsMessage, TripEvents, isValidWsMessage, isValidTripEvent, ClientWsMessage, BackendEndpoints, normalizeDriver, normalizeTrip } from '../contracts';
@@ -22,16 +22,18 @@ export const useDriverStreamConnection = ({
   const [requestedTrip, setRequestedTrip] = useState<Trip | null>(null)
   const [tripStatus, setTripStatus] = useState<TripEvents | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [ws, setWs] = useState<WebSocket | null>(null);
   const [driver, setDriver] = useState<Driver | null>(null);
+  const socketRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
     if (!userID) return;
 
     const websocket = new WebSocket(`${WEBSOCKET_URL}${BackendEndpoints.WS_DRIVERS}?userID=${userID}&packageSlug=${packageSlug}`);
-    setWs(websocket);
+    socketRef.current = websocket;
 
     websocket.onopen = () => {
+      setError(null);
+
       if (location) {
         // Send initial location
         websocket.send(JSON.stringify({
@@ -69,8 +71,9 @@ export const useDriverStreamConnection = ({
       }
     };
 
-    websocket.onclose = () => {
-      console.log('WebSocket closed');
+    websocket.onclose = (event) => {
+      socketRef.current = null;
+      console.log(`WebSocket closed (code: ${event.code}, reason: ${event.reason || 'no reason provided'})`);
     };
 
     websocket.onerror = (event) => {
@@ -80,6 +83,7 @@ export const useDriverStreamConnection = ({
 
     return () => {
       console.log('Closing WebSocket');
+      socketRef.current = null;
       if (websocket.readyState === WebSocket.OPEN) {
         websocket.close();
       }
@@ -88,10 +92,13 @@ export const useDriverStreamConnection = ({
   }, [userID]);
 
   const sendMessage = (message: ClientWsMessage) => {
-    if (ws?.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify(message));
+    const websocket = socketRef.current;
+
+    if (websocket?.readyState === WebSocket.OPEN) {
+      websocket.send(JSON.stringify(message));
     } else {
-      setError('WebSocket is not connected');
+      const state = websocket ? socketStateLabel(websocket.readyState) : 'closed';
+      setError(`WebSocket is not connected (state: ${state})`);
     }
   };
 
@@ -101,4 +108,19 @@ export const useDriverStreamConnection = ({
   }
 
   return { error, tripStatus, driver, requestedTrip, resetTripStatus, sendMessage, setTripStatus };
+}
+
+function socketStateLabel(state: number) {
+  switch (state) {
+    case WebSocket.CONNECTING:
+      return 'connecting';
+    case WebSocket.OPEN:
+      return 'open';
+    case WebSocket.CLOSING:
+      return 'closing';
+    case WebSocket.CLOSED:
+      return 'closed';
+    default:
+      return `unknown(${state})`;
+  }
 }

@@ -145,6 +145,7 @@ func (c *Client) Send(event contracts.WSMessage) error {
 
 func (c *Client) ReadMessage() {
 	defer func() {
+		fmt.Printf("closing websocket connetion id: %s", c.ID)
 		if c.onClose != nil {
 			c.onClose(c.ID)
 		}
@@ -154,6 +155,10 @@ func (c *Client) ReadMessage() {
 		log.Printf("error setting read deadline: %v", err)
 		return
 	}
+
+	c.Conn.SetPongHandler(func(string) error {
+		return c.Conn.SetReadDeadline(time.Now().Add(pongWait))
+	})
 
 	for {
 		_, data, err := c.Conn.ReadMessage()
@@ -168,6 +173,11 @@ func (c *Client) ReadMessage() {
 		if err := json.Unmarshal(data, &req); err != nil {
 			log.Printf("Failed to unmarshal message from client %s: %v", c.ID, err)
 			continue
+		}
+
+		if err := c.Conn.SetReadDeadline(time.Now().Add(pongWait)); err != nil {
+			log.Printf("error refreshing read deadline for client %s: %v", c.ID, err)
+			return
 		}
 
 		if c.onEvent == nil {
