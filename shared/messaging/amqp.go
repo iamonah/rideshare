@@ -8,14 +8,10 @@ type AmqpMessage struct {
 	Data    json.RawMessage `json:"data"`
 }
 
-// Routing keys - using consistent event/command patterns
 const (
-	// Exchanges are named by domain and message category.
-	TripEventsExchange      = "trip.events"
-	DriverCommandsExchange  = "driver.commands"
-	DriverEventsExchange    = "driver.events"
-	PaymentEventsExchange   = "payment.events"
-	PaymentCommandsExchange = "payment.commands"
+	// RideShareExchange is the single topic exchange used for all application messages.
+	// Publishers only choose a routing key; queue bindings decide who receives it.
+	RideShareExchange = "rideshare.messages"
 
 	// Trip events (trip.event.*)
 	TripEventCreated   = "trip.event.created"
@@ -46,10 +42,12 @@ const (
 )
 
 const (
-	// Queues
-	DriverTripEventsQueue   = "driver.trip-events.queue"   // driver-service consumes trip/driver matching events.
-	DriverTripRequestsQueue = "driver.trip-requests.queue" // api-gateway delivers trip requests to connected drivers.
-	RiderEventsQueue        = "rider.events.queue"         // api-gateway delivers trip/payment events to connected riders.
-	TripDriverEventsQueue   = "trip.driver-events.queue"   // trip-service consumes driver-side outcome events.
-	TripDriverCommandsQueue = "trip.driver-commands.queue" // trip-service consumes driver response commands.
+	FindAvailableDriversQueue        = "find_available_drivers"        // driver-service consumes trip creation / retry events and chooses a driver.
+	DriverCmdTripRequestQueue        = "driver_cmd_trip_request"       // api-gateway pushes trip requests to the connected driver websocket.
+	DriverTripResponseQueue          = "driver_trip_response"          // trip workflow consumes driver accept/decline responses.
+	NotifyDriverNoDriversFoundQueue  = "notify_driver_no_drivers_found" // rider notification when no suitable driver was found.
+	NotifyDriverAssignQueue          = "notify_driver_assign"          // rider notification when a driver has been assigned.
+	PaymentTripResponseQueue         = "payment_trip_response"         // reserved for payment responses that affect trip state.
+	NotifyPaymentSessionCreatedQueue = "notify_payment_session_created" // rider notification when a payment session is created.
+	NotifyPaymentSuccessQueue        = "payment_success"               // rider notification when payment succeeds.
 )

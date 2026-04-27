@@ -33,9 +33,14 @@ func (c *TripConsumer) ListenDriverTripEventsQueue(ctx context.Context) error {
 		return fmt.Errorf("driver service is required")
 	}
 
-	err := c.rabbitmq.Consume(ctx, messaging.DriverTripEventsQueue, func(ctx context.Context, msg messaging.Message) error {
+	// This queue is the driver-matching inbox. It receives freshly created trips and
+	// retry events after a driver declines so the service can choose the next driver.
+	err := c.rabbitmq.Consume(ctx, messaging.FindAvailableDriversQueue, func(ctx context.Context, msg messaging.Message) error {
+		log.Printf("driver-service received message on queue %s with routing key %s", messaging.FindAvailableDriversQueue, msg.RoutingKey)
+
 		var envelope messaging.AmqpMessage
 		if err := json.Unmarshal(msg.Body, &envelope); err != nil {
+			log.Printf("failed to decode AMQP envelope for routing key %s: %s", msg.RoutingKey, string(msg.Body))
 			return fmt.Errorf("decode amqp message envelope: %w", err)
 		}
 
@@ -74,10 +79,11 @@ func (c *TripConsumer) HandleFindAndNotifyDriver(ctx context.Context, event *eve
 		if err != nil {
 			return fmt.Errorf("marshal no drivers found event: %w", err)
 		}
-		if err := c.rabbitmq.Publish(ctx, messaging.DriverEventsExchange, messaging.DriverEventNoDriversFound, messaging.AmqpMessage{
-			OwnerID: event.UserID,
-			Data:    data,
-		}); err != nil {
+		// publish driver-facing event to notify that no drivers were found for the trip request
+			if err := c.rabbitmq.Publish(ctx, messaging.DriverEventNoDriversFound, messaging.AmqpMessage{
+				OwnerID: event.UserID,
+				Data:    data,
+			}); err != nil {
 			return fmt.Errorf("publish no drivers found: %w", err)
 		}
 
@@ -97,14 +103,14 @@ func (c *TripConsumer) HandleFindAndNotifyDriver(ctx context.Context, event *eve
 		return fmt.Errorf("marshal trip request event: %w", err)
 	}
 
-	log.Printf("publishing trip request command for driver: %s", suitableDriver.GetId())
-	if err := c.rabbitmq.Publish(ctx, messaging.DriverCommandsExchange, messaging.DriverCmdTripRequest, messaging.AmqpMessage{
+
+	//driverfacing event to notify driver of trip request
+	if err := c.rabbitmq.Publish(ctx, messaging.DriverCmdTripRequest, messaging.AmqpMessage{
 		OwnerID: suitableDriver.GetId(),
 		Data:    data,
 	}); err != nil {
 		return fmt.Errorf("publish trip request to driver %s: %w", suitableDriver.GetId(), err)
 	}
-
 	return nil
 }
 
@@ -114,4 +120,9 @@ func rejectedDriverID(event *eventcontracts.TripCreatedEvent) string {
 	}
 
 	return event.Driver.ID
+}
+
+
+func (c *TripConsumer) HandleTripAccepted(ctx context.Context) error {
+	return nil
 }

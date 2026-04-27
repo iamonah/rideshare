@@ -68,42 +68,46 @@ payment.cmd.create_session
 ## Current Queues
 
 ```text
-driver.trip-events.queue
-driver.trip-requests.queue
-rider.events.queue
-trip.driver-events.queue
-trip.driver-commands.queue
+find_available_drivers
+driver_cmd_trip_request
+driver_trip_response
+notify_driver_no_drivers_found
+notify_driver_assign
+notify_payment_session_created
+payment_success
+payment_trip_response
 ```
 
-`driver.trip-events.queue` is consumed by driver-service. It carries trip events
-that driver-service reacts to, such as `trip.event.created`.
+`find_available_drivers` is consumed by driver-service. It carries trip events
+that start or retry the driver matching process, such as `trip.event.created`.
 
-`driver.trip-requests.queue` is a driver-facing delivery queue. The technical
+`driver_cmd_trip_request` is a driver-facing delivery queue. The technical
 consumer may be the API gateway websocket layer, but the business audience is the
 driver.
 
-`rider.events.queue` is a rider-facing delivery queue. The technical consumer may
-be the API gateway websocket layer, but the business audience is the rider.
+`driver_trip_response` is reserved for driver accept/decline responses that the
+trip workflow consumes before it emits rider-facing outcomes.
 
-`trip.driver-events.queue` is consumed by trip-service. It carries driver events
-that trip-service reacts to, such as `driver.event.no_drivers_found`.
+`notify_driver_no_drivers_found`, `notify_driver_assign`,
+`notify_payment_session_created`, and `payment_success` are rider-facing delivery
+queues. The technical consumer may be the API gateway websocket layer, but the
+business audience is the rider.
 
-`trip.driver-commands.queue` is consumed by trip-service. It carries driver
-commands that trip-service reacts to, such as `driver.cmd.trip_accept`.
+`payment_trip_response` is reserved for payment responses that should feed back
+into trip state updates.
 
 ## Current Bindings
 
 ```text
-trip.events     + trip.event.created                 -> driver.trip-events.queue
-driver.events   + driver.event.driver_not_interested -> driver.trip-events.queue
-driver.commands + driver.cmd.trip_request            -> driver.trip-requests.queue
-driver.events   + driver.event.no_drivers_found      -> trip.driver-events.queue
-driver.events   + driver.event.no_drivers_found      -> rider.events.queue
-driver.events   + driver.event.driver_assigned       -> trip.driver-events.queue
-driver.events   + driver.event.driver_assigned       -> rider.events.queue
-payment.events  + payment.event.session_created      -> rider.events.queue
-driver.commands + driver.cmd.trip_accept             -> trip.driver-commands.queue
-driver.commands + driver.cmd.trip_decline            -> trip.driver-commands.queue
+trip.events     + trip.event.created                 -> find_available_drivers
+driver.events   + driver.event.driver_not_interested -> find_available_drivers
+driver.commands + driver.cmd.trip_request            -> driver_cmd_trip_request
+driver.commands + driver.cmd.trip_accept             -> driver_trip_response
+driver.commands + driver.cmd.trip_decline            -> driver_trip_response
+driver.events   + driver.event.no_drivers_found      -> notify_driver_no_drivers_found
+driver.events   + driver.event.driver_assigned       -> notify_driver_assign
+payment.events  + payment.event.session_created      -> notify_payment_session_created
+payment.events  + payment.event.success              -> payment_success
 ```
 
 ## Naming Rules

@@ -83,7 +83,7 @@ func (rm *RabbitMQClient) logReturnedMessages() {
 	}()
 }
 
-func (rm *RabbitMQClient) Publish(ctx context.Context, exchange, routingKey string, msg AmqpMessage) error {
+func (rm *RabbitMQClient) Publish(ctx context.Context, routingKey string, msg AmqpMessage) error {
 	log.Printf("publishing messages with routing key: %s", routingKey)
 	body, err := json.Marshal(msg)
 	if err != nil {
@@ -91,7 +91,7 @@ func (rm *RabbitMQClient) Publish(ctx context.Context, exchange, routingKey stri
 	}
 
 	return rm.channel.PublishWithContext(ctx,
-		exchange,   // exchange
+		RideShareExchange, // exchange
 		routingKey, // routing key
 		true,       // mandatory
 		false,      // immediate

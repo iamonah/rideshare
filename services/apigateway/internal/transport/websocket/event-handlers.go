@@ -18,7 +18,7 @@ func (h *Handler) ReceiveDriverEvents(client *Client, event contracts.WSMessage)
 			OwnerID: client.ID,
 			Data:    event.Data,
 		}
-		return h.rabbitmq.Publish(context.Background(), messaging.DriverCommandsExchange, event.Type, envelope)
+		return h.rabbitmq.Publish(context.Background(), event.Type, envelope)
 	default:
 		return fmt.Errorf("unknown driver event type: %s", event.Type)
 	}
