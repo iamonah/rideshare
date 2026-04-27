@@ -103,15 +103,11 @@ func (s *Server) HandleRidersWebsocket(w http.ResponseWriter, r *http.Request) {
 }
 
 // This queue carries trip request commands that are forwarded to the connected driver websocket.
-func (s *Server) ListenDriverTripRequestsQueue(ctx context.Context) error {
+func (s *Server) SendToDriver(ctx context.Context) error {
 	return s.broker.Consume(ctx, messaging.DriverCmdTripRequestQueue, func(ctx context.Context, msg messaging.Message) error {
 		var envelope messaging.AmqpMessage
 		if err := json.Unmarshal(msg.Body, &envelope); err != nil {
 			return fmt.Errorf("listenDriverTripRequestsQueue: decode amqp message envelope: %w", err)
-		}
-
-		if msg.RoutingKey != messaging.DriverCmdTripRequest {
-			return nil
 		}
 
 		event := contracts.WSMessage{
@@ -119,6 +115,7 @@ func (s *Server) ListenDriverTripRequestsQueue(ctx context.Context) error {
 			Data: envelope.Data,
 		}
 
+		log.Println("send to driver websocket with event:", event.Type)
 		if err := s.manager.SendToClient(envelope.OwnerID, event); err != nil {
 			return fmt.Errorf("listenDriverTripRequestsQueue: send to driver %s: %w", envelope.OwnerID, err)
 		}
@@ -129,7 +126,7 @@ func (s *Server) ListenDriverTripRequestsQueue(ctx context.Context) error {
 
 // Rider notifications are split across multiple queues following the tutorial naming.
 // We consume each queue and forward its payload to the rider websocket identified by ownerId.
-func (s *Server) ListenRiderEventsQueue(ctx context.Context) error {
+func (s *Server) SendToRider(ctx context.Context) error {
 	for _, queue := range []string{
 		messaging.NotifyRiderNoDriversFoundQueue,
 		messaging.NotifyDriverAssignQueue,
@@ -155,7 +152,7 @@ func (s *Server) consumeRiderQueue(ctx context.Context, queue string) error {
 			Type: msg.RoutingKey,
 			Data: envelope.Data,
 		}
-
+		log.Println("send to rider websocket with event:", event.Type)
 		if err := s.manager.SendToClient(envelope.OwnerID, event); err != nil {
 			return fmt.Errorf("listenRiderEventsQueue: send to rider %s: %w", envelope.OwnerID, err)
 		}

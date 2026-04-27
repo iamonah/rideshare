@@ -42,12 +42,12 @@ const (
 )
 
 const (
-	FindAvailableDriversQueue        = "find_available_drivers"        // driver-service consumes trip creation / retry events and chooses a driver.
-	DriverCmdTripRequestQueue        = "driver_cmd_trip_request"       // api-gateway pushes trip requests to the connected driver websocket.
-	DriverTripResponseQueue          = "driver_trip_response"          // trip workflow consumes driver accept/decline responses.
-	NotifyDriverNoDriversFoundQueue  = "notify_driver_no_drivers_found" // rider notification when no suitable driver was found.
-	NotifyDriverAssignQueue          = "notify_driver_assign"          // rider notification when a driver has been assigned.
-	PaymentTripResponseQueue         = "payment_trip_response"         // reserved for payment responses that affect trip state.
+	FindAvailableDriversQueue        = "find_available_drivers"         // driver-service consumes trip creation / retry events and chooses a driver.
+	DriverCmdTripRequestQueue        = "driver_cmd_trip_request"        // api-gateway pushes trip requests to the connected driver websocket.
+	DriverTripResponseQueue          = "driver_trip_response"           // trip workflow consumes driver accept/decline responses.
+	NotifyRiderNoDriversFoundQueue   = "notify_rider_no_drivers_found"  // rider notification when no suitable driver was found.
+	NotifyDriverAssignQueue          = "notify_driver_assign"           // rider notification when a driver has been assigned.
+	PaymentTripResponseQueue         = "payment_trip_response"          // reserved for payment responses that affect trip state.
 	NotifyPaymentSessionCreatedQueue = "notify_payment_session_created" // rider notification when a payment session is created.
-	NotifyPaymentSuccessQueue        = "payment_success"               // rider notification when payment succeeds.
+	NotifyPaymentSuccessQueue        = "payment_success"                // rider notification when payment succeeds.
 )

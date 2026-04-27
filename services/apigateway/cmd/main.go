@@ -70,11 +70,11 @@ func main() {
 	defer rabbitClient.Close()
 	log.Println("starting RabbitMQ client...")
 	websocketServer := websockettransport.NewServer(driverClient, rabbitClient)
-	err = websocketServer.ListenDriverTripRequestsQueue(context.Background())
+	err = websocketServer.SendToDriver(context.Background())
 	if err != nil {
 		log.Fatalf("failed to listen on driver trip requests queue: %v", err)
 	}
-	err = websocketServer.ListenRiderEventsQueue(context.Background())
+	err = websocketServer.SendToRider(context.Background())
 	if err != nil {
 		log.Fatalf("failed to listen on rider events queue: %v", err)
 	}

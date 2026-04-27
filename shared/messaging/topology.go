@@ -32,7 +32,7 @@ func (rm *RabbitMQClient) bindQueue(exchange, queue string, routingKeys []string
 	return nil
 }
 
-func (rm *RabbitMQClient) declareQueueAndBind(exchange, queue string, routingKeys []string, args amqp.Table) error {
+func (rm *RabbitMQClient) declareQueueAndBind(queue string, routingKeys []string, args amqp.Table) error {
 	if err := rm.declareQueue(queue, args); err != nil {
 		return err
 	}
@@ -41,7 +41,7 @@ func (rm *RabbitMQClient) declareQueueAndBind(exchange, queue string, routingKey
 		return nil
 	}
 
-	if err := rm.bindQueue(exchange, queue, routingKeys); err != nil {
+	if err := rm.bindQueue(RideShareExchange, queue, routingKeys); err != nil {
 		return err
 	}
 
@@ -57,7 +57,7 @@ func (rm *RabbitMQClient) setupTopicExchange(name string) error {
 }
 
 func (rm *RabbitMQClient) setupQueueBindings(exchange, queue string, routingKeys []string, args amqp.Table) error {
-	if err := rm.declareQueueAndBind(exchange, queue, routingKeys, args); err != nil {
+	if err := rm.declareQueueAndBind(queue, routingKeys, args); err != nil {
 		return fmt.Errorf("setup queue %q on exchange %q: %w", queue, exchange, err)
 	}
 
