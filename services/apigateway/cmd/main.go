@@ -69,12 +69,12 @@ func main() {
 	}
 	defer rabbitClient.Close()
 	log.Println("starting RabbitMQ client...")
-	websocketHandler := websockettransport.NewHandler(driverClient, rabbitClient)
-	err = websocketHandler.ListenDriverTripRequestsQueue(context.Background())
+	websocketServer := websockettransport.NewServer(driverClient, rabbitClient)
+	err = websocketServer.ListenDriverTripRequestsQueue(context.Background())
 	if err != nil {
 		log.Fatalf("failed to listen on driver trip requests queue: %v", err)
 	}
-	err = websocketHandler.ListenRiderEventsQueue(context.Background())
+	err = websocketServer.ListenRiderEventsQueue(context.Background())
 	if err != nil {
 		log.Fatalf("failed to listen on rider events queue: %v", err)
 	}
@@ -86,7 +86,7 @@ func main() {
 		Handler: httptransport.NewRouter(httptransport.Dependencies{
 			Handlers: tripClient,
 			// Drivers:    driverClient,
-			Websockets: websocketHandler,
+			Websockets: websocketServer,
 		}),
 	}
 

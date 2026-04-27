@@ -12,7 +12,7 @@ import (
 
 type Dependencies struct {
 	Handlers   app.TripUpstream
-	Websockets *websockettransport.Handler
+	Websockets *websockettransport.Server
 	rabbitmq   *messaging.RabbitMQClient
 }
 

@@ -17,10 +17,10 @@ var riderEventTypes = []string{
 	// Define rider event types in the future
 }
 
-func RegisterRoutes(r *mux.Router, handler *Handler) {
-	handler.Manager.RegisterHandler(driverEventTypes, handler.ReceiveDriverEvents)
-	handler.Manager.RegisterHandler(riderEventTypes, handler.ReceiveRiderEvents)
+func RegisterRoutes(r *mux.Router, server *Server) {
+	server.manager.RegisterHandler(driverEventTypes, server.ReceiveDriverEvents)
+	server.manager.RegisterHandler(riderEventTypes, server.ReceiveRiderEvents)
 
-	r.HandleFunc("/ws/drivers", handler.HandleDriversWebsocket).Methods(http.MethodGet)
-	r.HandleFunc("/ws/riders", handler.HandleRidersWebsocket).Methods(http.MethodGet)
+	r.HandleFunc("/ws/drivers", server.HandleDriversWebsocket).Methods(http.MethodGet)
+	r.HandleFunc("/ws/riders", server.HandleRidersWebsocket).Methods(http.MethodGet)
 }

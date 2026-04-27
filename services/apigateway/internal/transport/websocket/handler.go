@@ -14,21 +14,21 @@ import (
 	"github.com/iamonah/rideshare/shared/proto/pb/driverpb"
 )
 
-type Handler struct {
-	Manager      *Manager
-	rabbitmq     *messaging.RabbitMQClient
-	driverClient *client.DriverClient
+type Server struct {
+	manager *Manager
+	broker  *messaging.RabbitMQClient
+	drivers *client.DriverClient
 }
 
-func NewHandler(dc *client.DriverClient, rmq *messaging.RabbitMQClient) *Handler {
-	return &Handler{
-		Manager:      NewManager(),
-		driverClient: dc,
-		rabbitmq:     rmq,
+func NewServer(dc *client.DriverClient, rmq *messaging.RabbitMQClient) *Server {
+	return &Server{
+		manager: NewManager(),
+		drivers: dc,
+		broker:  rmq,
 	}
 }
 
-func (h *Handler) HandleDriversWebsocket(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleDriversWebsocket(w http.ResponseWriter, r *http.Request) {
 	userID := r.URL.Query().Get("userID")
 	if userID == "" {
 		log.Println("Missing userID in query parameters")
@@ -45,7 +45,7 @@ func (h *Handler) HandleDriversWebsocket(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	data, err := h.driverClient.RegisterDriver(r.Context(), &driverpb.RegisterDriverRequest{
+	data, err := s.drivers.RegisterDriver(r.Context(), &driverpb.RegisterDriverRequest{
 		DriverId:    userID,
 		PackageSlug: packageSlug,
 	})
@@ -74,13 +74,13 @@ func (h *Handler) HandleDriversWebsocket(w http.ResponseWriter, r *http.Request)
 	}
 
 	fmt.Println("Start drvier websocket for driverID:", userID)
-	client := NewClient(conn, userID, h.Manager.routeEventHandler, h.Manager.removeClient)
-	h.Manager.addClient(userID, client)
+	client := NewClient(conn, userID, s.manager.routeEventHandler, s.manager.removeClient)
+	s.manager.addClient(userID, client)
 	go client.ReadMessage()
 	go client.WriteMessage()
 }
 
-func (h *Handler) HandleRidersWebsocket(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleRidersWebsocket(w http.ResponseWriter, r *http.Request) {
 	userID := r.URL.Query().Get("userID")
 	if userID == "" {
 		log.Println("Missing userID in query parameters")
@@ -96,15 +96,15 @@ func (h *Handler) HandleRidersWebsocket(w http.ResponseWriter, r *http.Request) 
 	}
 
 	fmt.Println("Start rider websocket for riderID:", userID)
-	client := NewClient(conn, userID, h.Manager.routeEventHandler, h.Manager.removeClient)
-	h.Manager.addClient(userID, client)
+	client := NewClient(conn, userID, s.manager.routeEventHandler, s.manager.removeClient)
+	s.manager.addClient(userID, client)
 	go client.ReadMessage()
 	go client.WriteMessage()
 }
 
 // This queue carries trip request commands that are forwarded to the connected driver websocket.
-func (h *Handler) ListenDriverTripRequestsQueue(ctx context.Context) error {
-	return h.rabbitmq.Consume(ctx, messaging.DriverCmdTripRequestQueue, func(ctx context.Context, msg messaging.Message) error {
+func (s *Server) ListenDriverTripRequestsQueue(ctx context.Context) error {
+	return s.broker.Consume(ctx, messaging.DriverCmdTripRequestQueue, func(ctx context.Context, msg messaging.Message) error {
 		var envelope messaging.AmqpMessage
 		if err := json.Unmarshal(msg.Body, &envelope); err != nil {
 			return fmt.Errorf("listenDriverTripRequestsQueue: decode amqp message envelope: %w", err)
@@ -119,7 +119,7 @@ func (h *Handler) ListenDriverTripRequestsQueue(ctx context.Context) error {
 			Data: envelope.Data,
 		}
 
-		if err := h.Manager.SendToClient(envelope.OwnerID, event); err != nil {
+		if err := s.manager.SendToClient(envelope.OwnerID, event); err != nil {
 			return fmt.Errorf("listenDriverTripRequestsQueue: send to driver %s: %w", envelope.OwnerID, err)
 		}
 
@@ -129,14 +129,14 @@ func (h *Handler) ListenDriverTripRequestsQueue(ctx context.Context) error {
 
 // Rider notifications are split across multiple queues following the tutorial naming.
 // We consume each queue and forward its payload to the rider websocket identified by ownerId.
-func (h *Handler) ListenRiderEventsQueue(ctx context.Context) error {
+func (s *Server) ListenRiderEventsQueue(ctx context.Context) error {
 	for _, queue := range []string{
-		messaging.NotifyDriverNoDriversFoundQueue,
+		messaging.NotifyRiderNoDriversFoundQueue,
 		messaging.NotifyDriverAssignQueue,
 		messaging.NotifyPaymentSessionCreatedQueue,
 		messaging.NotifyPaymentSuccessQueue,
 	} {
-		if err := h.consumeRiderQueue(ctx, queue); err != nil {
+		if err := s.consumeRiderQueue(ctx, queue); err != nil {
 			return err
 		}
 	}
@@ -144,8 +144,8 @@ func (h *Handler) ListenRiderEventsQueue(ctx context.Context) error {
 	return nil
 }
 
-func (h *Handler) consumeRiderQueue(ctx context.Context, queue string) error {
-	return h.rabbitmq.Consume(ctx, queue, func(ctx context.Context, msg messaging.Message) error {
+func (s *Server) consumeRiderQueue(ctx context.Context, queue string) error {
+	return s.broker.Consume(ctx, queue, func(ctx context.Context, msg messaging.Message) error {
 		var envelope messaging.AmqpMessage
 		if err := json.Unmarshal(msg.Body, &envelope); err != nil {
 			return fmt.Errorf("listenRiderEventsQueue: decode amqp message envelope: %w", err)
@@ -156,7 +156,7 @@ func (h *Handler) consumeRiderQueue(ctx context.Context, queue string) error {
 			Data: envelope.Data,
 		}
 
-		if err := h.Manager.SendToClient(envelope.OwnerID, event); err != nil {
+		if err := s.manager.SendToClient(envelope.OwnerID, event); err != nil {
 			return fmt.Errorf("listenRiderEventsQueue: send to rider %s: %w", envelope.OwnerID, err)
 		}
 

@@ -8,7 +8,7 @@ import (
 	"github.com/iamonah/rideshare/shared/messaging"
 )
 
-func (h *Handler) ReceiveDriverEvents(client *Client, event contracts.WSMessage) error {
+func (s *Server) ReceiveDriverEvents(client *Client, event contracts.WSMessage) error {
 	switch event.Type {
 	case messaging.DriverCmdLocation:
 		// Handle driver location update in the future
@@ -18,13 +18,13 @@ func (h *Handler) ReceiveDriverEvents(client *Client, event contracts.WSMessage)
 			OwnerID: client.ID,
 			Data:    event.Data,
 		}
-		return h.rabbitmq.Publish(context.Background(), event.Type, envelope)
+		return s.broker.Publish(context.Background(), event.Type, envelope)
 	default:
 		return fmt.Errorf("unknown driver event type: %s", event.Type)
 	}
 }
 
-func (h *Handler) ReceiveRiderEvents(client *Client, event contracts.WSMessage) error {
+func (s *Server) ReceiveRiderEvents(client *Client, event contracts.WSMessage) error {
 	switch event.Type {
 	// Handle rider events in the future
 	}
