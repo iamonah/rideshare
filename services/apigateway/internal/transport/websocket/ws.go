@@ -11,6 +11,8 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/iamonah/rideshare/shared/contracts"
+	"github.com/iamonah/rideshare/shared/errs"
+	"github.com/iamonah/rideshare/shared/messaging"
 )
 
 var (
@@ -143,6 +145,10 @@ func (c *Client) Send(event contracts.WSMessage) error {
 	}
 }
 
+var ErrInvalidMessage = errors.New("invalid message")
+var ErrHandlerNotFound = errors.New("handler not found")
+var ErrinternalError = errors.New("internal error")
+
 func (c *Client) ReadMessage() {
 	defer func() {
 		fmt.Printf("closing websocket connetion id: %s", c.ID)
@@ -169,8 +175,16 @@ func (c *Client) ReadMessage() {
 			return
 		}
 
-		var req contracts.WSMessage
-		if err := json.Unmarshal(data, &req); err != nil {
+		var reqData contracts.WSMessage
+		if err := json.Unmarshal(data, &reqData); err != nil {
+			reqData.Type = messaging.ErrorType
+			reqData.Error = &contracts.APIError{
+				Code:    errs.InvalidArgument.String(),
+				Message: ErrInvalidMessage.Error(),
+			}
+			if err := c.Send(reqData); err != nil {
+				log.Printf("Failed to send error message to client %s: %v", c.ID, err)
+			}
 			log.Printf("Failed to unmarshal message from client %s: %v", c.ID, err)
 			continue
 		}
@@ -185,7 +199,7 @@ func (c *Client) ReadMessage() {
 			return
 		}
 
-		if err := c.onEvent(c, req); err != nil {
+		if err := c.onEvent(c, reqData); err != nil {
 			log.Printf("error routing event: %v", err)
 			return
 		}
@@ -220,4 +234,3 @@ func (c *Client) WriteMessage() {
 		}
 	}
 }
-
