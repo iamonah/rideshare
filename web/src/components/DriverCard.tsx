@@ -1,6 +1,6 @@
 import { Driver, CarPackageSlug } from "../types";
-import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { DriverAvatar } from "./DriverAvatar";
 
 export const DriverCard = ({ driver, packageSlug }: { driver?: Driver | null, packageSlug?: CarPackageSlug }) => {
   if (!driver) return null;
@@ -17,15 +17,13 @@ export const DriverCard = ({ driver, packageSlug }: { driver?: Driver | null, pa
         <CardTitle>{driver.name}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-2 items-center">
-        {driver.profilePicture && (
-          <Image
-            className="rounded-full"
-            src={driver.profilePicture}
-            alt={`${driver.name}'s profile picture`}
-            width={50}
-            height={50}
-          />
-        )}
+        <DriverAvatar
+          className="rounded-full"
+          src={driver.profilePicture}
+          alt={`${driver.name}'s profile picture`}
+          width={50}
+          height={50}
+        />
 
         {driver.carPlate && (
           <p className="text-sm">

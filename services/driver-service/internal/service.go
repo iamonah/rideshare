@@ -80,7 +80,7 @@ func (s *Service) RegisterDriver(req *driverpb.RegisterDriverRequest) (*driverpb
 	driver := &driverpb.Driver{
 		Id:             driverID,
 		Name:           "Lando Norris",
-		ProfilePicture: util.GetRandomAvatar(mathrand.IntN(10)),
+		ProfilePicture: util.GetRandomAvatar(mathrand.IntN(9) + 1),
 		CarPlate:       GenerateRandomPlate(),
 		GeoHash:        geohash.EncodeWithPrecision(latitude, longitude, 7),
 		PackageSlug:    string(packageSlug),

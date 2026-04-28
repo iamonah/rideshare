@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import { useRiderStreamConnection } from '../hooks/useRiderStreamConnection';
 import { MapContainer, Marker, Popup, Rectangle, TileLayer } from 'react-leaflet'
 import L from 'leaflet';
@@ -13,6 +12,7 @@ import { RoutingControl } from "./RoutingControl";
 import { API_URL } from '../constants';
 import { RiderTripOverview } from './RiderTripOverview';
 import { BackendEndpoints, HTTPTripPreviewRequestPayload, HTTPTripPreviewResponse, HTTPTripStartRequestPayload } from '../contracts';
+import { DriverAvatar } from './DriverAvatar';
 
 const userMarker = new L.Icon({
     iconUrl: "/markers/location-pin.svg",
@@ -261,7 +261,7 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
                                 <br />
                                 Car Plate: {driver?.carPlate}
                                 <br />
-                                <Image
+                                <DriverAvatar
                                     src={driver?.profilePicture}
                                     alt={`${driver?.name}'s profile picture`}
                                     width={100}
