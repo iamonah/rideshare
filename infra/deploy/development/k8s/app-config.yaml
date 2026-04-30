@@ -9,3 +9,5 @@ data:
   OSRM_TIMEOUT: "20s"
   TRIP_SERVICE_GRPC_URL: "trip-service:9093"
   DRIVER_SERVICE_GRPC_URL: "driver-service:9092"
+  STRIPE_SUCCESS_URL: "http://localhost:3000?payment=success"
+  STRIPE_CANCEL_URL: "http://localhost:3000?payment=cancel"
