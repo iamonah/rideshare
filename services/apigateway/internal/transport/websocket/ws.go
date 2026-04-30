@@ -36,7 +36,7 @@ type EventHandler func(client *Client, event contracts.WSMessage) error
 
 type Manager struct {
 	clientsList ClientList
-	sync.Mutex
+	sync.RWMutex
 	handers map[string]EventHandler
 }
 
@@ -48,13 +48,20 @@ func NewManager() *Manager {
 }
 
 func (m *Manager) RegisterHandler(eventType []string, handler EventHandler) {
+	m.Lock()
+	defer m.Unlock()
+
 	for _, et := range eventType {
 		m.handers[et] = handler
 	}
 }
 
 func (m *Manager) routeEventHandler(c *Client, event contracts.WSMessage) error {
-	if handler, ok := m.handers[event.Type]; ok {
+	m.RLock()
+	handler, ok := m.handers[event.Type]
+	m.RUnlock()
+
+	if ok {
 		if err := handler(c, event); err != nil {
 			log.Printf("error handling event: %v", err)
 			return err
@@ -76,8 +83,8 @@ func (m *Manager) addClient(id string, client *Client) {
 }
 
 func (m *Manager) getClient(id string) (*Client, bool) {
-	m.Lock()
-	defer m.Unlock()
+	m.RLock()
+	defer m.RUnlock()
 
 	client, ok := m.clientsList[id]
 	return client, ok

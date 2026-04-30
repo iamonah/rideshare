@@ -105,7 +105,6 @@ func toPreviewTripOutput(resp *trippb.PreviewTripResponse) *app.PreviewTripOutpu
 	}
 
 	output := &app.PreviewTripOutput{
-		TripID:    resp.GetTripId(),
 		Route:     toRoute(resp.GetRoute()),
 		RideFares: make([]app.PreviewRideFare, 0, len(resp.GetRideFares())),
 	}

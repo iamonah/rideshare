@@ -88,8 +88,8 @@ export const RiderTripOverview = ({
         title="Driver assigned!"
         description="Your driver is on the way, waiting for payment confirmation to show..."
       >
-        <div className="flex flex-col space-y-3 justify-center items-center mb-4">
-          {/* <p>Driver: {trip.id}</p> */}
+        <div className="flex flex-col gap-4">
+          <DriverCard driver={assignedDriver} />
         </div>
         <Button variant="destructive" className="w-full" onClick={onCancel}>
           Cancel current trip

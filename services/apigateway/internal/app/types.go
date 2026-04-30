@@ -14,7 +14,6 @@ type CreateTripInput struct {
 }
 
 type PreviewTripOutput struct {
-	TripID    string            `json:"tripId,omitempty"`
 	Route     Route             `json:"route"`
 	RideFares []PreviewRideFare `json:"rideFares"`
 }

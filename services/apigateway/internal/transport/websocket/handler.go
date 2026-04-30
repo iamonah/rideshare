@@ -8,8 +8,8 @@ import (
 	"net/http"
 
 	"github.com/iamonah/rideshare/services/apigateway/internal/infra/client"
-	httpcommon "github.com/iamonah/rideshare/services/apigateway/internal/transport/http/common"
 	"github.com/iamonah/rideshare/shared/contracts"
+	"github.com/iamonah/rideshare/shared/errs"
 	"github.com/iamonah/rideshare/shared/messaging"
 	"github.com/iamonah/rideshare/shared/proto/pb/driverpb"
 )
@@ -51,7 +51,13 @@ func (s *Server) HandleDriversWebsocket(w http.ResponseWriter, r *http.Request) 
 	})
 
 	if err != nil {
-		httpcommon.WriteUpstreamGRPCError(w, "driver_service", err)
+		conn.WriteJSON(contracts.WSMessage{
+			Type: messaging.ErrorType,
+			Error: &contracts.APIError{
+				Code:    errs.Internal.String(),
+				Message: "failed to register driver",
+			},
+		})
 		conn.Close()
 		return
 	}

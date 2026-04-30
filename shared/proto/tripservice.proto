@@ -19,9 +19,8 @@ message PreviewTripRequest {
 }
 
 message PreviewTripResponse {
-  string trip_id = 1;
-  Route route = 2;
-  repeated RideFare ride_fares = 3;
+  Route route = 1;
+  repeated RideFare ride_fares = 2;
 }
 
 message Coordinate {
