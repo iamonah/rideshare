@@ -1,9 +1,6 @@
 package events
 
-type Coordinate struct {
-	Latitude  float64 `json:"latitude"`
-	Longitude float64 `json:"longitude"`
-}
+import "github.com/iamonah/rideshare/shared/types"
 
 type TripFareSnapshot struct {
 	ID          string `json:"id"`
@@ -11,15 +8,17 @@ type TripFareSnapshot struct {
 }
 
 type TripRouteSnapshot struct {
-	Geometry []Coordinate `json:"geometry"`
+	Geometry []types.Coordinate `json:"geometry"`
 }
 
 type AssignedDriverSnapshot struct {
-	ID             string `json:"id"`
-	Name           string `json:"name"`
-	ProfilePicture string `json:"profilePicture"`
-	CarPlate       string `json:"carPlate"`
-	PackageSlug    string `json:"packageSlug"`
+	ID             string            `json:"id"`
+	Name           string            `json:"name"`
+	ProfilePicture string            `json:"profilePicture"`
+	CarPlate       string            `json:"carPlate"`
+	PackageSlug    string            `json:"packageSlug"`
+	GeoHash        string            `json:"geoHash"`
+	Location       *types.Coordinate `json:"location,omitempty"`
 }
 
 // TripCreatedEvent is published by trip-service when a rider creates a trip.
@@ -28,8 +27,8 @@ type TripCreatedEvent struct {
 	UserID          string                  `json:"userId"`
 	Status          string                  `json:"status"`
 	Fare            TripFareSnapshot        `json:"fare"`
-	Pickup          Coordinate              `json:"pickup"`
-	Dropoff         Coordinate              `json:"dropoff"`
+	Pickup          types.Coordinate        `json:"pickup"`
+	Dropoff         types.Coordinate        `json:"dropoff"`
 	DistanceMeters  float64                 `json:"distanceMeters"`
 	DurationSeconds float64                 `json:"durationSeconds"`
 	Route           TripRouteSnapshot       `json:"route"`

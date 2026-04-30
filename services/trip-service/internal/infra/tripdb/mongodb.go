@@ -2,6 +2,7 @@ package tripdb
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	tripdomain "github.com/iamonah/rideshare/services/trip-service/internal/domain/trip"
@@ -45,10 +46,30 @@ func (r *mongoRepository) GetTripByID(ctx context.Context, id string) (*tripdoma
 
 	var t tripdomain.Trip
 	if err := r.db.Collection(tripsCollection).FindOne(ctx, bson.M{"_id": objectID}).Decode(&t); err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, nil
+		}
 		return nil, err
 	}
 
 	return &t, nil
+}
+
+func (r *mongoRepository) UpdateTrip(ctx context.Context, tripID string, status string, driver *tripdomain.AssignedDriverSnapshot) error {
+	objectID, err := bson.ObjectIDFromHex(tripID)
+	if err != nil {
+		return err
+	}
+
+	update := bson.M{
+		"$set": bson.M{
+			"status": status,
+			"driver": driver,
+		},
+	}
+
+	_, err = r.db.Collection(tripsCollection).UpdateOne(ctx, bson.M{"_id": objectID}, update)
+	return err
 }
 
 func (r *mongoRepository) SaveRideFare(ctx context.Context, fare *tripdomain.RideFare) error {

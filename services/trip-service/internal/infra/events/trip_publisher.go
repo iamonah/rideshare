@@ -9,6 +9,7 @@ import (
 	tripdomain "github.com/iamonah/rideshare/services/trip-service/internal/domain/trip"
 	eventcontracts "github.com/iamonah/rideshare/shared/contracts/events"
 	"github.com/iamonah/rideshare/shared/messaging"
+	"github.com/iamonah/rideshare/shared/types"
 )
 
 type TripEventPublisher struct {
@@ -76,12 +77,12 @@ func toTripCreatedEvent(trip *tripdomain.Trip) (*eventcontracts.TripCreatedEvent
 	}, nil
 }
 
-func routeGeometry(coordinates [][]float64) ([]eventcontracts.Coordinate, error) {
+func routeGeometry(coordinates [][]float64) ([]types.Coordinate, error) {
 	if len(coordinates) == 0 {
 		return nil, fmt.Errorf("trip route geometry is required")
 	}
 
-	geometry := make([]eventcontracts.Coordinate, 0, len(coordinates))
+	geometry := make([]types.Coordinate, 0, len(coordinates))
 	for _, pair := range coordinates {
 		coordinate, err := coordinateFromOSRMPair(pair)
 		if err != nil {
@@ -94,12 +95,12 @@ func routeGeometry(coordinates [][]float64) ([]eventcontracts.Coordinate, error)
 	return geometry, nil
 }
 
-func coordinateFromOSRMPair(pair []float64) (eventcontracts.Coordinate, error) {
+func coordinateFromOSRMPair(pair []float64) (types.Coordinate, error) {
 	if len(pair) != 2 {
-		return eventcontracts.Coordinate{}, fmt.Errorf("invalid coordinate pair")
+		return types.Coordinate{}, fmt.Errorf("invalid coordinate pair")
 	}
 
-	return eventcontracts.Coordinate{
+	return types.Coordinate{
 		Longitude: pair[0],
 		Latitude:  pair[1],
 	}, nil

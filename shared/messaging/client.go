@@ -108,6 +108,13 @@ type Message struct {
 	RoutingKey string `json:"routing_key"`
 }
 
+// MessageHandler error semantics:
+//   - return nil when the message was handled, or when the failure is a business/domain
+//     outcome that should not be retried. In those cases, publish a follow-up event/command
+//     that represents the outcome and ack the original message.
+//   - return an error only for transient/operational failures where redelivery is desired.
+//     In this consumer implementation, the first failure is requeued once. If the redelivered
+//     message fails again, it is nacked without requeue so dead-letter handling can take over.
 type MessageHandler func(ctx context.Context, msg Message) error
 
 func (rm *RabbitMQClient) Consume(ctx context.Context, queue string, fn MessageHandler) error {
@@ -140,6 +147,10 @@ func (rm *RabbitMQClient) Consume(ctx context.Context, queue string, fn MessageH
 				Body:       delivery.Body,
 				RoutingKey: delivery.RoutingKey,
 			}
+
+			// Important: the handler's returned error controls broker retry behavior.
+			// Keep business failures inside the handler and publish explicit outcome events
+			// instead of returning an error, otherwise the original message will be retried.
 			if err := fn(ctx, msg); err != nil {
 				log.Printf("failed to handle message from queue %s: %v", queue, err)
 				if delivery.Redelivered {

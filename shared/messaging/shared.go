@@ -33,6 +33,7 @@ func (rm *RabbitMQClient) setupSharedInfrastructure() error {
 	// Rider-facing notifications are split by intent so the websocket gateway can consume them independently.
 	if err := rm.declareQueueAndBind(NotifyRiderNoDriversFoundQueue, []string{
 		DriverEventNoDriversFound,
+		TripEventNotFound,
 	}, nil); err != nil {
 		return fmt.Errorf("bind queue %q : %w", NotifyRiderNoDriversFoundQueue, err)
 	}

@@ -13,12 +13,13 @@ const (
 	// Publishers only choose a routing key; queue bindings decide who receives it.
 	RideShareExchange = "rideshare.messages"
 
-	ErrorType = "error"  //for websocket error messages
+	ErrorType = "error" //for websocket error messages
 	// Trip events (trip.event.*)
 	TripEventCreated   = "trip.event.created"
 	TripEventUpdated   = "trip.event.updated"
 	TripEventCancelled = "trip.event.cancelled"
 	TripEventCompleted = "trip.event.completed"
+	TripEventNotFound  = "trip.event.not_found"
 
 	// Driver events (driver.event.*)
 	DriverEventDriverAssigned      = "driver.event.driver_assigned"

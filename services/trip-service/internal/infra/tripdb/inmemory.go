@@ -33,6 +33,17 @@ func (r *inmemRepository) GetTripByID(ctx context.Context, id string) (*tripdoma
 	return t, nil
 }
 
+func (r *inmemRepository) UpdateTrip(ctx context.Context, tripID string, status string, driver *tripdomain.AssignedDriverSnapshot) error {
+	t, ok := r.trips[tripID]
+	if !ok {
+		return nil
+	}
+
+	t.Status = status
+	t.Driver = driver
+	return nil
+}
+
 func (r *inmemRepository) SaveRideFare(ctx context.Context, fare *tripdomain.RideFare) error {
 	r.rideFares[fare.ID.Hex()] = fare
 	return nil

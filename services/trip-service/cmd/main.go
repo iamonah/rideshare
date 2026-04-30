@@ -58,6 +58,10 @@ func main() {
 	eventPublisher := events.NewTripEventPublisher(rabbitClient)
 
 	svc := tripdomain.NewTripBusiness(inmemRepo, routeProvider, eventPublisher)
+	driverConsumer := events.NewDriverConsumer(rabbitClient, svc)
+	if err = driverConsumer.Listen(context.Background()); err != nil {
+		log.Fatal("failed to read from the driver consumer")
+	}
 	grpcServer := grpc.NewServer(grpc.ChainUnaryInterceptor(nil))
 	grpc_Handler.NewTripServer(grpcServer, svc)
 

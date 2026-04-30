@@ -47,5 +47,4 @@ type Trip struct {
 	Status   string                  `bson:"status" json:"status"`
 	RideFare *RideFare               `bson:"ride_fare" json:"ride_fare"`
 	Driver   *AssignedDriverSnapshot `bson:"driver" json:"driver"`
-	// Route    *RouteSummary `bson:"route" json:"route"`
 }
