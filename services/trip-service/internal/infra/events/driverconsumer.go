@@ -7,6 +7,7 @@ import (
 	"log"
 
 	"github.com/iamonah/rideshare/services/trip-service/internal/domain/trip"
+	"github.com/iamonah/rideshare/shared/contracts/events"
 	eventcontracts "github.com/iamonah/rideshare/shared/contracts/events"
 	"github.com/iamonah/rideshare/shared/messaging"
 	"github.com/iamonah/rideshare/shared/types"
@@ -72,7 +73,6 @@ func (c *DriverConsumer) Listen(ctx context.Context) error {
 
 func (c *DriverConsumer) handleTripDeclined(ctx context.Context, tripId, userId string) error {
 	// When a driver declines, we should try to find another driver
-
 	currentTrip, err := c.tb.GetTripByID(ctx, tripId)
 	if err != nil {
 		return err
@@ -158,43 +158,25 @@ func (c *DriverConsumer) handleTripAccepted(ctx context.Context, driver eventcon
 		return err
 	}
 
-	// marshalledPayload, err := json.Marshal(paymentCreateSessionCommand{
-	// 	TripID:   driver.TripID,
-	// 	UserID:   currentTrip.UserID,
-	// 	DriverID: driver.Id,
-	// 	Amount:   currentTrip.RideFare.TotalPriceInCents,
-	// 	Currency: "USD",
-	// })
-	// if err != nil {
-	// 	return err
-	// }
+	marshalledPayload, err := json.Marshal(events.PaymentCreateSessionCommand{
+		TripID:   driver.TripID,
+		UserID:   currentTrip.UserID,
+		DriverID: driver.Driver.Id,
+		Amount:   currentTrip.RideFare.TotalPriceInCents,
+		Currency: "USD",
+	})
+	if err != nil {
+		return err
+	}
 
-	// if err := c.rabbitmq.Publish(ctx, messaging.PaymentCmdCreateSession, messaging.AmqpMessage{
-	// 	OwnerID: currentTrip.UserID,
-	// 	Data:    marshalledPayload,
-	// }); err != nil {
-	// 	return err
-	// }
+	if err := c.rabbitmq.Publish(ctx, messaging.PaymentCmdCreateSession, messaging.AmqpMessage{
+		OwnerID: currentTrip.UserID,
+		Data:    marshalledPayload,
+	}); err != nil {
+		return err
+	}
 
 	return nil
-}
-
-type paymentCreateSessionCommand struct {
-	TripID   string  `json:"tripID"`
-	UserID   string  `json:"userID"`
-	DriverID string  `json:"driverID"`
-	Amount   float64 `json:"amount"`
-	Currency string  `json:"currency"`
-}
-
-func declinedDriverSnapshot(driver eventcontracts.DriverTripResponseData) *eventcontracts.AssignedDriverSnapshot {
-	return &eventcontracts.AssignedDriverSnapshot{
-		ID:             driver.Driver.Id,
-		Name:           driver.Driver.Name,
-		ProfilePicture: driver.Driver.ProfilePicture,
-		CarPlate:       driver.Driver.CarPlate,
-		PackageSlug:    driver.Driver.PackageSlug,
-	}
 }
 
 func assignedEventDriverSnapshot(driver eventcontracts.DriverTripResponseData) *eventcontracts.AssignedDriverSnapshot {

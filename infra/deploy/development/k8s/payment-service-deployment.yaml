@@ -39,18 +39,35 @@ spec:
                   key: STRIPE_CANCEL_URL
 
             # Stripe credentials
-            # - name: STRIPE_SECRET_KEY
-            #   valueFrom:
-            #     secretKeyRef:
-            #       name: stripe-secrets
-            #       key: stripe-secret-key
+            - name: STRIPE_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: stripe-secrets
+                  key: stripe-secret-key
 
             # RabbitMQ credentials
-            - name: RABBITMQ_URI
+            - name: RABBITMQ_DEFAULT_USER
               valueFrom:
                 secretKeyRef:
                   name: rabbitmq-credentials
-                  key: uri
+                  key: username
+            - name: RABBITMQ_DEFAULT_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-credentials
+                  key: password
+            - name: RABBITMQ_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-credentials
+                  key: host
+            - name: RABBITMQ_VHOST
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-credentials
+                  key: virtual_host
+            - name: RABBITMQ_PORT
+              value: "5672"
 ---
 apiVersion: v1
 kind: Service

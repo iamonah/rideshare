@@ -44,6 +44,12 @@ func (rm *RabbitMQClient) setupSharedInfrastructure() error {
 		return fmt.Errorf("bind queue %q : %w", NotifyDriverAssignQueue, err)
 	}
 
+	if err := rm.declareQueueAndBind(PaymentTripResponseQueue, []string{
+		PaymentCmdCreateSession,
+	}, nil); err != nil {
+		return fmt.Errorf("bind queue %q : %w", PaymentTripResponseQueue, err)
+	}
+
 	if err := rm.declareQueueAndBind(NotifyPaymentSessionCreatedQueue, []string{
 		PaymentEventSessionCreated,
 	}, nil); err != nil {

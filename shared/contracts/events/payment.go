@@ -20,3 +20,11 @@ type PaymentStatusUpdateData struct {
 	UserID   string `json:"userID"`
 	DriverID string `json:"driverID"`
 }
+
+type PaymentCreateSessionCommand struct {
+	TripID   string  `json:"tripID"`
+	UserID   string  `json:"userID"`
+	DriverID string  `json:"driverID"`
+	Amount   float64 `json:"amount"`
+	Currency string  `json:"currency"`
+}

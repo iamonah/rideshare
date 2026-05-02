@@ -42,7 +42,7 @@ func (c *TripConsumer) Listen(ctx context.Context) error {
 
 		switch msg.RoutingKey {
 		case messaging.PaymentCmdCreateSession:
-			var payload eventcontracts.PaymentTripResponseData
+			var payload eventcontracts.PaymentCreateSessionCommand
 			if err := json.Unmarshal(envelope.Data, &payload); err != nil {
 				return fmt.Errorf("decode payment create session payload: %w", err)
 			}
@@ -53,7 +53,7 @@ func (c *TripConsumer) Listen(ctx context.Context) error {
 	})
 }
 
-func (c *TripConsumer) handleTripAccepted(ctx context.Context, payload eventcontracts.PaymentTripResponseData) error {
+func (c *TripConsumer) handleTripAccepted(ctx context.Context, payload eventcontracts.PaymentCreateSessionCommand) error {
 	paymentSession, err := c.service.CreatePaymentSession(
 		ctx,
 		payload.TripID,
