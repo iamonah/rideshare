@@ -9,6 +9,7 @@ import (
 
 	eventcontracts "github.com/iamonah/rideshare/shared/contracts/events"
 	"github.com/iamonah/rideshare/shared/messaging"
+	"github.com/iamonah/rideshare/shared/proto/pb/driverpb"
 	"github.com/iamonah/rideshare/shared/types"
 )
 
@@ -92,7 +93,10 @@ func (c *TripConsumer) HandleFindAndNotifyDriver(ctx context.Context, event *eve
 		return nil
 	}
 
-	suitableDriver := suitableDrivers[rand.IntN(len(suitableDrivers))] //setting the driver details
+	var suitableDriver *driverpb.Driver
+	if len(suitableDrivers) != 0 {
+		suitableDriver = suitableDrivers[rand.IntN(len(suitableDrivers))] //setting the driver details
+	}
 	event.Driver = &eventcontracts.AssignedDriverSnapshot{
 		ID:             suitableDriver.GetId(),
 		Name:           suitableDriver.GetName(),

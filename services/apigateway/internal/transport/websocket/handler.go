@@ -50,6 +50,7 @@ func (s *Server) HandleDriversWebsocket(w http.ResponseWriter, r *http.Request) 
 		PackageSlug: packageSlug,
 	})
 
+	log.Printf("error: %v", err)
 	if err != nil {
 		conn.WriteJSON(contracts.WSMessage{
 			Type: messaging.ErrorType,

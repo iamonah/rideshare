@@ -2,6 +2,7 @@ package driverservice
 
 import (
 	"errors"
+	"log"
 	"strings"
 	"sync"
 
@@ -73,7 +74,9 @@ func (s *Service) RegisterDriver(req *driverpb.RegisterDriverRequest) (*driverpb
 		return nil, errs.New(errs.InvalidArgument, errors.New("unsupported package slug"))
 	}
 
-	randomRoute := PredefinedRoutes[mathrand.IntN(len(PredefinedRoutes))]
+	value := mathrand.IntN(len(PredefinedRoutes))
+	log.Println("value:", value)
+	randomRoute := PredefinedRoutes[value]
 	latitude := randomRoute[0][0]
 	longitude := randomRoute[0][1]
 
