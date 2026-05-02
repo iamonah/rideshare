@@ -1,10 +1,5 @@
 "use client"
 
-// Assets
-import 'leaflet/dist/leaflet.css';
-// Fix for default marker icon
-import icon from 'leaflet/dist/images/marker-icon.png'
-import iconShadow from 'leaflet/dist/images/marker-shadow.png'
 import dynamic from 'next/dynamic'
 import { Button } from "../components/ui/button";
 import { useState, Suspense } from "react";
@@ -12,22 +7,9 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { CarPackageSlug } from '../types';
 import { DriverPackageSelector } from '../components/DriverPackageSelector';
 
-// Dynamically import components that use Leaflet
+// Dynamically import map components to keep MapLibre on the client.
 const DriverMap = dynamic(() => import("../components/DriverMap").then(mod => mod.DriverMap), { ssr: false })
 const RiderMap = dynamic(() => import("../components/RiderMap"), { ssr: false })
-
-// Initialize Leaflet icon only on client side
-if (typeof window !== 'undefined') {
-  import('leaflet').then((L) => {
-    const DefaultIcon = L.default.icon({
-      iconUrl: icon.src,
-      shadowUrl: iconShadow.src,
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-    })
-    L.default.Marker.prototype.options.icon = DefaultIcon
-  })
-}
 
 function HomeContent() {
   const [userType, setUserType] = useState<"driver" | "rider" | null>(null)

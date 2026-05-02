@@ -10,6 +10,7 @@ export enum BackendEndpoints {
 }
 
 export enum TripEvents {
+  Error = "error",
   NoDriversFound = "driver.event.no_drivers_found",
   DriverAssigned = "driver.event.driver_assigned",
   Completed = "trip.event.completed",
@@ -25,6 +26,7 @@ export enum TripEvents {
 
 // Messages sent from the server to the client via the websocket
 export type ServerWsMessage =
+  | ErrorWsMessage
   | PaymentSessionCreatedRequest
   | DriverAssignedRequest
   | DriverLocationRequest
@@ -43,6 +45,14 @@ interface TripCreatedRequest {
 
 interface NoDriversFoundRequest {
   type: TripEvents.NoDriversFound;
+}
+
+interface ErrorWsMessage {
+  type: TripEvents.Error;
+  error: {
+    code: string;
+    message: string;
+  };
 }
 
 interface DriverRegisterRequest {
@@ -138,8 +148,18 @@ export function isValidTripEvent(event: string): event is TripEvents {
   return Object.values(TripEvents).includes(event as TripEvents);
 }
 
-export function isValidWsMessage(message: ServerWsMessage): message is ServerWsMessage {
-  return isValidTripEvent(message.type);
+export function getWsMessageType(message: unknown): string | null {
+  if (!message || typeof message !== "object") {
+    return null;
+  }
+
+  const maybeType = (message as { type?: unknown }).type;
+  return typeof maybeType === "string" ? maybeType : null;
+}
+
+export function isValidWsMessage(message: unknown): message is ServerWsMessage {
+  const type = getWsMessageType(message);
+  return type !== null && isValidTripEvent(type);
 }
 
 export function normalizeDriver(data: Driver | DriverWirePayload): Driver {

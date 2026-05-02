@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -13,7 +14,19 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased">{children}</body>
+      <head>
+        <link
+          rel="stylesheet"
+          href="https://unpkg.com/maplibre-gl/dist/maplibre-gl.css"
+        />
+      </head>
+      <body className="antialiased">
+        <Script
+          src="https://unpkg.com/maplibre-gl/dist/maplibre-gl.js"
+          strategy="beforeInteractive"
+        />
+        {children}
+      </body>
     </html>
   );
 }

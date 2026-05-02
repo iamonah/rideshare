@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { WEBSOCKET_URL } from "../constants";
 import { Trip, Driver, CarPackageSlug } from '../types';
-import { ServerWsMessage, TripEvents, isValidWsMessage, isValidTripEvent, ClientWsMessage, BackendEndpoints, normalizeDriver, normalizeTrip } from '../contracts';
+import { TripEvents, isValidWsMessage, ClientWsMessage, BackendEndpoints, normalizeDriver, normalizeTrip, getWsMessageType } from '../contracts';
 
 interface useDriverConnectionProps {
   location: {
@@ -47,27 +47,33 @@ export const useDriverStreamConnection = ({
     };
 
     websocket.onmessage = (event) => {
-      const message = JSON.parse(event.data) as ServerWsMessage;
+      const message = JSON.parse(event.data) as unknown;
 
       if (!message || !isValidWsMessage(message)) {
-        setError(`Unknown message type "${message}", allowed types are: ${Object.values(TripEvents).join(', ')}`);
+        setError(`Unknown message type "${getWsMessageType(message) ?? 'missing'}", allowed types are: ${Object.values(TripEvents).join(', ')}`);
         return;
       }
 
+      setError(null);
+
       switch (message.type) {
+        case TripEvents.Error:
+          setError(message.error?.message ?? 'WebSocket server error');
+          break;
         case TripEvents.DriverTripRequest:
           setRequestedTrip(normalizeTrip(message.data));
+          setTripStatus(message.type);
           break;
         case TripEvents.DriverRegister:
           setDriver(normalizeDriver(message.data));
           break;
-      }
-
-
-      if (isValidTripEvent(message.type)) {
-        setTripStatus(message.type);
-      } else {
-        setError(`Unknown message type "${message.type}", allowed types are: ${Object.values(TripEvents).join(', ')}`);
+        case TripEvents.DriverAssigned:
+        case TripEvents.NoDriversFound:
+        case TripEvents.Created:
+        case TripEvents.PaymentSessionCreated:
+        case TripEvents.DriverLocation:
+          setTripStatus(message.type);
+          break;
       }
     };
 

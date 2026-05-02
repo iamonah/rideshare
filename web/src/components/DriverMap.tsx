@@ -1,45 +1,37 @@
 "use client"
 
 import { useDriverStreamConnection } from "../hooks/useDriverStreamConnection"
-import { MapContainer, Marker, Popup, TileLayer } from 'react-leaflet'
-import L from 'leaflet';
-import { MapClickHandler } from './MapClickHandler';
 import { useMemo, useState } from "react";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { CarPackageSlug, Coordinate } from "../types";
 import { DriverTripOverview } from "./DriverTripOverview";
 import * as Geohash from 'ngeohash';
-import { RoutingControl } from "./RoutingControl";
 import { DriverCard } from "./DriverCard";
 import { TripEvents } from "../contracts";
+import {
+  coordinateToLngLat,
+  createCircleMarkerElement,
+  createImageMarkerElement,
+  createTextPopupContent,
+  GeoJsonFeatureCollection,
+  getMapLibre,
+  MapLibreMap,
+  MapLibreMarker,
+  OPEN_FREE_MAP_STYLE,
+  tupleToLngLat,
+} from "../lib/maplibre";
 
 const START_LOCATION: Coordinate = {
   latitude: 37.7749,
   longitude: -122.4194,
 }
 
-const driverMarker = new L.Icon({
-  iconUrl: "https://www.svgrepo.com/show/25407/car.svg",
-  iconSize: [30, 30],
-  iconAnchor: [15, 30],
-});
-
-const startLocationMarker = new L.Icon({
-  iconUrl: "https://www.svgrepo.com/show/535711/user.svg",
-  iconSize: [30, 40], // Size of the marker
-  iconAnchor: [20, 40], // Anchor point
-});
-
-const destinationMarker = new L.Icon({
-  iconUrl: "/markers/location-pin.svg",
-  iconSize: [40, 40],
-  iconAnchor: [20, 40],
-  popupAnchor: [0, -36],
-});
-
 export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
-  const mapRef = useRef<L.Map>(null)
+  const mapContainerRef = useRef<HTMLDivElement | null>(null)
+  const mapRef = useRef<MapLibreMap | null>(null)
+  const markerRefs = useRef<MapLibreMarker[]>([])
   const userID = useMemo(() => crypto.randomUUID(), [])
+  const [mapReady, setMapReady] = useState(false)
   const [riderLocation, setRiderLocation] = useState<Coordinate>(START_LOCATION)
 
   const driverGeohash = useMemo(() =>
@@ -61,10 +53,10 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
     packageSlug,
   })
 
-  const handleMapClick = (e: L.LeafletMouseEvent) => {
+  const handleMapClick = (coordinate: Coordinate) => {
     setRiderLocation({
-      latitude: e.latlng.lat,
-      longitude: e.latlng.lng
+      latitude: coordinate.latitude,
+      longitude: coordinate.longitude
     })
   }
 
@@ -120,6 +112,165 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
     requestedTrip?.route?.geometry[0]?.coordinates[0]
     , [requestedTrip])
 
+  useEffect(() => {
+    let cancelled = false
+    let retryTimeout: number | null = null
+
+    const initializeMap = () => {
+      if (cancelled || mapRef.current || !mapContainerRef.current) {
+        return
+      }
+
+      const maplibregl = getMapLibre()
+      if (!maplibregl) {
+        retryTimeout = window.setTimeout(initializeMap, 50)
+        return
+      }
+
+      const map = new maplibregl.Map({
+        container: mapContainerRef.current,
+        style: OPEN_FREE_MAP_STYLE,
+        center: [START_LOCATION.longitude, START_LOCATION.latitude],
+        zoom: 13,
+      })
+
+      map.addControl(new maplibregl.NavigationControl(), "top-right")
+      map.on("load", () => setMapReady(true))
+      map.on("click", (event: { lngLat: { lat: number; lng: number } }) => {
+        handleMapClick({
+          latitude: event.lngLat.lat,
+          longitude: event.lngLat.lng,
+        })
+      })
+
+      mapRef.current = map
+    }
+
+    initializeMap()
+
+    return () => {
+      cancelled = true
+      if (retryTimeout) {
+        clearTimeout(retryTimeout)
+      }
+
+      markerRefs.current.forEach((marker) => marker.remove())
+      markerRefs.current = []
+
+      if (mapRef.current) {
+        mapRef.current.remove()
+        mapRef.current = null
+      }
+    }
+    // The live location recentering happens in a separate effect.
+  }, [])
+
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) {
+      return
+    }
+
+    mapRef.current.setCenter([riderLocation.longitude, riderLocation.latitude])
+  }, [mapReady, riderLocation.latitude, riderLocation.longitude])
+
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) {
+      return
+    }
+
+    const map = mapRef.current
+    const sourceId = "driver-route-source"
+    const layerId = "driver-route-layer"
+    const featureCollection: GeoJsonFeatureCollection = {
+      type: "FeatureCollection",
+      features: parsedRoute ? [{
+        type: "Feature",
+        geometry: {
+          type: "LineString",
+          coordinates: parsedRoute.map(tupleToLngLat),
+        },
+        properties: {},
+      }] : [],
+    }
+
+    const source = map.getSource(sourceId)
+    if (source) {
+      source.setData(featureCollection)
+      return
+    }
+
+    map.addSource(sourceId, {
+      type: "geojson",
+      data: featureCollection,
+    })
+
+    map.addLayer({
+      id: layerId,
+      type: "line",
+      source: sourceId,
+      layout: {
+        "line-cap": "round",
+        "line-join": "round",
+      },
+      paint: {
+        "line-color": "#2563eb",
+        "line-width": 5,
+      },
+    })
+  }, [mapReady, parsedRoute])
+
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) {
+      return
+    }
+
+    const map = mapRef.current
+    const maplibregl = getMapLibre()
+    if (!maplibregl) {
+      return
+    }
+
+    markerRefs.current.forEach((marker) => marker.remove())
+    markerRefs.current = []
+
+    markerRefs.current.push(
+      new maplibregl.Marker({
+        element: createImageMarkerElement("https://www.svgrepo.com/show/25407/car.svg", 30, 30),
+        anchor: "center",
+      })
+        .setLngLat([riderLocation.longitude, riderLocation.latitude])
+        .setPopup(new maplibregl.Popup({ offset: 20 }).setDOMContent(createTextPopupContent([
+          `Driver ID: ${userID}`,
+          `Geohash: ${driverGeohash}`,
+        ])))
+        .addTo(map)
+    )
+
+    if (startLocation) {
+      markerRefs.current.push(
+        new maplibregl.Marker({
+          element: createCircleMarkerElement("S", "#0f766e", 32),
+          anchor: "center",
+        })
+          .setLngLat(coordinateToLngLat(startLocation))
+          .setPopup(new maplibregl.Popup({ offset: 20 }).setText("Start Location"))
+          .addTo(map)
+      )
+    }
+
+    if (destination) {
+      markerRefs.current.push(
+        new maplibregl.Marker({
+          element: createImageMarkerElement("/markers/location-pin.svg", 40, 40),
+          anchor: "bottom",
+        })
+          .setLngLat(coordinateToLngLat(destination))
+          .setPopup(new maplibregl.Popup({ offset: 20 }).setText("Destination"))
+          .addTo(map)
+      )
+    }
+  }, [destination, driverGeohash, mapReady, riderLocation.latitude, riderLocation.longitude, startLocation, userID])
+
 
   if (error) {
     return <div>Error: {error}</div>
@@ -128,47 +279,12 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
   return (
     <div className="relative flex flex-col md:flex-row h-screen">
       <div className="flex-1">
-        <MapContainer
-          center={[riderLocation.latitude, riderLocation.longitude]}
-          zoom={13}
-          style={{ height: '100%', width: '100%' }}
-          ref={mapRef}
-        >
-          <TileLayer
-            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-            attribution="&copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors &copy; <a href='https://carto.com/'>CARTO</a>"
-          />
-
-          <Marker
-            key={userID}
-            position={[riderLocation.latitude, riderLocation.longitude]}
-            icon={driverMarker}
-          >
-            <Popup>
-              Driver ID: {userID}
-              <br />
-              Geohash: {driverGeohash}
-            </Popup>
-          </Marker>
-
-          {startLocation && (
-            <Marker position={[startLocation.latitude, startLocation.longitude]} icon={startLocationMarker}>
-              <Popup>Start Location</Popup>
-            </Marker>
-          )}
-
-          {destination && (
-            <Marker position={[destination.latitude, destination.longitude]} icon={destinationMarker}>
-              <Popup>Destination</Popup>
-            </Marker>
-          )}
-
-          {parsedRoute && (
-            <RoutingControl route={parsedRoute} />
-          )}
-
-          <MapClickHandler onClick={handleMapClick} />
-        </MapContainer>
+        <div ref={mapContainerRef} className="h-full w-full" />
+        {!mapReady && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white/70 text-sm font-medium text-slate-700">
+            Loading map...
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col md:w-[400px] bg-white border-t md:border-t-0 md:border-l">

@@ -1,31 +1,24 @@
 'use client';
 
 import { useRiderStreamConnection } from '../hooks/useRiderStreamConnection';
-import { MapContainer, Marker, Popup, Rectangle, TileLayer } from 'react-leaflet'
-import L from 'leaflet';
 import { getGeohashBounds } from '../utils/geohash';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { MapClickHandler } from './MapClickHandler';
 import { Button } from './ui/button';
 import { RouteFare, RequestRideProps, TripPreview, HTTPTripStartResponse } from "../types";
-import { RoutingControl } from "./RoutingControl";
 import { API_URL } from '../constants';
 import { RiderTripOverview } from './RiderTripOverview';
 import { BackendEndpoints, HTTPTripPreviewRequestPayload, HTTPTripPreviewResponse, HTTPTripStartRequestPayload } from '../contracts';
-import { DriverAvatar } from './DriverAvatar';
-
-const userMarker = new L.Icon({
-    iconUrl: "/markers/location-pin.svg",
-    iconSize: [40, 40],
-    iconAnchor: [20, 40],
-    popupAnchor: [0, -36],
-});
-
-const driverMarker = new L.Icon({
-    iconUrl: "https://www.svgrepo.com/show/25407/car.svg",
-    iconSize: [30, 30],
-    iconAnchor: [15, 30],
-});
+import {
+    coordinateToLngLat,
+    createDriverPopupContent,
+    createImageMarkerElement,
+    GeoJsonFeatureCollection,
+    getMapLibre,
+    MapLibreMap,
+    MapLibreMarker,
+    OPEN_FREE_MAP_STYLE,
+    tupleToLngLat,
+} from '../lib/maplibre';
 
 interface RiderMapProps {
     onRouteSelected?: (distance: number) => void;
@@ -38,10 +31,13 @@ const TEST_RIDER_LOCATION = {
 
 export default function RiderMap({ onRouteSelected }: RiderMapProps) {
     const [trip, setTrip] = useState<TripPreview | null>(null)
+    const [mapReady, setMapReady] = useState(false)
     const [previewError, setPreviewError] = useState<string | null>(null)
     const [selectedCarPackage] = useState<RouteFare | null>(null)
     const [destination, setDestination] = useState<[number, number] | null>(null)
-    const mapRef = useRef<L.Map>(null)
+    const mapContainerRef = useRef<HTMLDivElement | null>(null)
+    const mapRef = useRef<MapLibreMap | null>(null)
+    const markerRefs = useRef<MapLibreMarker[]>([])
     const userID = useMemo(() => crypto.randomUUID(), [])
     const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const previewAbortControllerRef = useRef<AbortController | null>(null);
@@ -53,19 +49,72 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
         assignedDriver,
         paymentSession,
         resetTripStatus
-    } = useRiderStreamConnection(TEST_RIDER_LOCATION, userID);
+    } = useRiderStreamConnection(userID);
 
     console.log(tripStatus)
 
     useEffect(() => {
-        if (!mapRef.current) {
+        let cancelled = false
+        let retryTimeout: number | null = null
+
+        const initializeMap = () => {
+            if (cancelled || mapRef.current || !mapContainerRef.current) {
+                return
+            }
+
+            const maplibregl = getMapLibre()
+            if (!maplibregl) {
+                retryTimeout = window.setTimeout(initializeMap, 50)
+                return
+            }
+
+            const map = new maplibregl.Map({
+                container: mapContainerRef.current,
+                style: OPEN_FREE_MAP_STYLE,
+                center: [TEST_RIDER_LOCATION.longitude, TEST_RIDER_LOCATION.latitude],
+                zoom: 13,
+            })
+
+            map.addControl(new maplibregl.NavigationControl(), "top-right")
+            map.on("load", () => setMapReady(true))
+            map.on("click", (event: { lngLat: { lat: number; lng: number } }) => {
+                void handleMapClick({
+                    latitude: event.lngLat.lat,
+                    longitude: event.lngLat.lng,
+                })
+            })
+
+            mapRef.current = map
+        }
+
+        initializeMap()
+
+        return () => {
+            cancelled = true
+            if (retryTimeout) {
+                clearTimeout(retryTimeout)
+            }
+
+            markerRefs.current.forEach((marker) => marker.remove())
+            markerRefs.current = []
+
+            if (mapRef.current) {
+                mapRef.current.remove()
+                mapRef.current = null
+            }
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+
+    useEffect(() => {
+        if (!mapReady || !mapRef.current) {
             return
         }
 
-        mapRef.current.setView([TEST_RIDER_LOCATION.latitude, TEST_RIDER_LOCATION.longitude], 13)
-    }, [])
+        mapRef.current.setCenter([TEST_RIDER_LOCATION.longitude, TEST_RIDER_LOCATION.latitude])
+    }, [mapReady])
 
-    const handleMapClick = async (e: L.LeafletMouseEvent) => {
+    const handleMapClick = async (coordinate: { latitude: number; longitude: number }) => {
         if (trip?.tripId) {
             return
         }
@@ -82,13 +131,13 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
         debounceTimeoutRef.current = setTimeout(async () => {
             const abortController = new AbortController()
             previewAbortControllerRef.current = abortController
-            setDestination([e.latlng.lat, e.latlng.lng])
+            setDestination([coordinate.latitude, coordinate.longitude])
             setPreviewError(null)
 
             try {
                 const data = await requestRidePreview({
                     pickup: [TEST_RIDER_LOCATION.latitude, TEST_RIDER_LOCATION.longitude],
-                    destination: [e.latlng.lat, e.latlng.lng],
+                    destination: [coordinate.latitude, coordinate.longitude],
                 }, abortController.signal)
 
                 if (previewAbortControllerRef.current !== abortController) {
@@ -175,6 +224,166 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
         }
     }, [])
 
+    useEffect(() => {
+        if (!mapReady || !mapRef.current) {
+            return
+        }
+
+        const map = mapRef.current
+        const sourceId = "rider-geohash-source"
+        const fillLayerId = "rider-geohash-fill"
+        const lineLayerId = "rider-geohash-outline"
+        const featureCollection: GeoJsonFeatureCollection = {
+            type: "FeatureCollection",
+            features: (drivers ?? [])
+                .filter((driver) => Boolean(driver?.geohash))
+                .map((driver) => {
+                    const [[minLat, minLng], [maxLat, maxLng]] = getGeohashBounds(driver.geohash)
+
+                    return {
+                        type: "Feature",
+                        properties: { geohash: driver.geohash },
+                        geometry: {
+                            type: "Polygon",
+                            coordinates: [[
+                                [minLng, minLat],
+                                [maxLng, minLat],
+                                [maxLng, maxLat],
+                                [minLng, maxLat],
+                                [minLng, minLat],
+                            ]],
+                        },
+                    }
+                }),
+        }
+
+        const source = map.getSource(sourceId)
+        if (source) {
+            source.setData(featureCollection)
+            return
+        }
+
+        map.addSource(sourceId, {
+            type: "geojson",
+            data: featureCollection,
+        })
+
+        map.addLayer({
+            id: fillLayerId,
+            type: "fill",
+            source: sourceId,
+            paint: {
+                "fill-color": "#3388ff",
+                "fill-opacity": 0.08,
+            },
+        })
+
+        map.addLayer({
+            id: lineLayerId,
+            type: "line",
+            source: sourceId,
+            paint: {
+                "line-color": "#3388ff",
+                "line-width": 1,
+            },
+        })
+    }, [drivers, mapReady])
+
+    useEffect(() => {
+        if (!mapReady || !mapRef.current) {
+            return
+        }
+
+        const map = mapRef.current
+        const sourceId = "rider-route-source"
+        const layerId = "rider-route-layer"
+        const featureCollection: GeoJsonFeatureCollection = {
+            type: "FeatureCollection",
+            features: trip ? [{
+                type: "Feature",
+                geometry: {
+                    type: "LineString",
+                    coordinates: trip.route.map(tupleToLngLat),
+                },
+                properties: {},
+            }] : [],
+        }
+
+        const source = map.getSource(sourceId)
+        if (source) {
+            source.setData(featureCollection)
+            return
+        }
+
+        map.addSource(sourceId, {
+            type: "geojson",
+            data: featureCollection,
+        })
+
+        map.addLayer({
+            id: layerId,
+            type: "line",
+            source: sourceId,
+            layout: {
+                "line-cap": "round",
+                "line-join": "round",
+            },
+            paint: {
+                "line-color": "#2563eb",
+                "line-width": 5,
+            },
+        })
+    }, [mapReady, trip])
+
+    useEffect(() => {
+        if (!mapReady || !mapRef.current) {
+            return
+        }
+
+        const map = mapRef.current
+        const maplibregl = getMapLibre()
+        if (!maplibregl) {
+            return
+        }
+
+        markerRefs.current.forEach((marker) => marker.remove())
+        markerRefs.current = []
+
+        markerRefs.current.push(
+            new maplibregl.Marker({
+                element: createImageMarkerElement("/markers/location-pin.svg", 40, 40),
+                anchor: "bottom",
+            })
+                .setLngLat([TEST_RIDER_LOCATION.longitude, TEST_RIDER_LOCATION.latitude])
+                .addTo(map)
+        )
+
+        for (const driver of drivers ?? []) {
+            const popup = new maplibregl.Popup({ offset: 20 }).setDOMContent(createDriverPopupContent(driver))
+            const marker = new maplibregl.Marker({
+                element: createImageMarkerElement("https://www.svgrepo.com/show/25407/car.svg", 30, 30),
+                anchor: "center",
+            })
+                .setLngLat(coordinateToLngLat(driver.location))
+                .setPopup(popup)
+                .addTo(map)
+
+            markerRefs.current.push(marker)
+        }
+
+        if (destination) {
+            markerRefs.current.push(
+                new maplibregl.Marker({
+                    element: createImageMarkerElement("/markers/location-pin.svg", 40, 40),
+                    anchor: "bottom",
+                })
+                    .setLngLat(tupleToLngLat(destination))
+                    .setPopup(new maplibregl.Popup({ offset: 20 }).setText("Destination"))
+                    .addTo(map)
+            )
+        }
+    }, [destination, drivers, mapReady])
+
     const handleStartTrip = async (fare: RouteFare) => {
         const payload = {
             rideFareId: fare.id,
@@ -218,76 +427,22 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
     return (
         <div className="relative flex flex-col md:flex-row h-screen">
             <div className={`${destination ? 'flex-[0.7]' : 'flex-1'}`}>
-                <MapContainer
-                    center={[TEST_RIDER_LOCATION.latitude, TEST_RIDER_LOCATION.longitude]}
-                    zoom={13}
-                    style={{ height: '100%', width: '100%' }}
-                    ref={mapRef}
-                >
-                    <TileLayer
-                        url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-                        attribution="&copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors &copy; <a href='https://carto.com/'>CARTO</a>"
-                    />
-                    <Marker position={[TEST_RIDER_LOCATION.latitude, TEST_RIDER_LOCATION.longitude]} icon={userMarker} />
-
-                    {/* Render geohash grid cells */}
-                    {drivers?.map((driver) => (
-                        <Rectangle
-                            key={`grid-${driver?.geohash}`}
-                            bounds={getGeohashBounds(driver?.geohash) as L.LatLngBoundsExpression}
-                            pathOptions={{
-                                color: '#3388ff',
-                                weight: 1,
-                                fillOpacity: 0.1
-                            }}
-                        >
-                            <Popup>Geohash: {driver?.geohash}</Popup>
-                        </Rectangle>
-                    ))}
-
-                    {/* Render driver markers */}
-                    {drivers?.map((driver) => (
-                        <Marker
-                            key={driver?.id}
-                            position={[driver?.location?.latitude, driver?.location?.longitude]}
-                            icon={driverMarker}
-                        >
-                            <Popup>
-                                Driver ID: {driver?.id}
-                                <br />
-                                Geohash: {driver?.geohash}
-                                <br />
-                                Name: {driver?.name}
-                                <br />
-                                Car Plate: {driver?.carPlate}
-                                <br />
-                                <DriverAvatar
-                                    src={driver?.profilePicture}
-                                    alt={`${driver?.name}'s profile picture`}
-                                    width={100}
-                                    height={100}
-                                />
-                            </Popup>
-                        </Marker>
-                    ))}
-                    {destination && (
-                        <Marker position={destination} icon={userMarker}>
-                            <Popup>Destination</Popup>
-                        </Marker>
-                    )}
-
-                    {selectedCarPackage && (
-                        <div className="mt-4 z-[9999] absolute bottom-0 right-0">
-                            <Button className="w-full">
-                                Request Ride with {selectedCarPackage.packageSlug}
-                            </Button>
-                        </div>
-                    )}
-                    {trip && (
-                        <RoutingControl route={trip.route} />
-                    )}
-                    <MapClickHandler onClick={handleMapClick} />
-                </MapContainer>
+                <div
+                    ref={mapContainerRef}
+                    className="h-full w-full"
+                />
+                {selectedCarPackage && (
+                    <div className="mt-4 z-[9999] absolute bottom-0 right-0">
+                        <Button className="w-full">
+                            Request Ride with {selectedCarPackage.packageSlug}
+                        </Button>
+                    </div>
+                )}
+                {!mapReady && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-white/70 text-sm font-medium text-slate-700">
+                        Loading map...
+                    </div>
+                )}
             </div>
 
             <div className="flex-[0.4]">

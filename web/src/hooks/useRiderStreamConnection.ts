@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { WEBSOCKET_URL } from "../constants";
 import { Trip } from '../types';
-import { Driver, Coordinate } from '../types';
-import { PaymentEventSessionCreatedData, TripEvents, ServerWsMessage, isValidWsMessage, BackendEndpoints, normalizeTrip } from '../contracts';
+import { Driver } from '../types';
+import { PaymentEventSessionCreatedData, TripEvents, isValidWsMessage, BackendEndpoints, normalizeTrip, getWsMessageType } from '../contracts';
 
-export function useRiderStreamConnection(location: Coordinate, userID: string) {
+export function useRiderStreamConnection(userID: string) {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [tripStatus, setTripStatus] = useState<TripEvents | null>(null);
   const [paymentSession, setPaymentSession] = useState<PaymentEventSessionCreatedData | null>(null);
@@ -16,27 +16,20 @@ export function useRiderStreamConnection(location: Coordinate, userID: string) {
 
     const ws = new WebSocket(`${WEBSOCKET_URL}${BackendEndpoints.WS_RIDERS}?userID=${userID}`);
 
-    ws.onopen = () => {
-      // Send initial location
-      if (location) {
-        ws.send(JSON.stringify({
-          type: TripEvents.DriverLocation,
-          data: {
-            location,
-          }
-        }));
-      }
-    };
-
     ws.onmessage = (event) => {
-      const message = JSON.parse(event.data) as ServerWsMessage;
+      const message = JSON.parse(event.data) as unknown;
 
       if (!message || !isValidWsMessage(message)) {
-        setError(`Unknown message type "${message}", allowed types are: ${Object.values(TripEvents).join(', ')}`);
+        setError(`Unknown message type "${getWsMessageType(message) ?? 'missing'}", allowed types are: ${Object.values(TripEvents).join(', ')}`);
         return;
       }
 
+      setError(null);
+
       switch (message.type) {
+        case TripEvents.Error:
+          setError(message.error?.message ?? 'WebSocket server error');
+          break;
         case TripEvents.DriverLocation:
           setDrivers(message.data);
           break;
