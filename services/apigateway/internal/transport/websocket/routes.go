@@ -9,8 +9,8 @@ import (
 
 var driverEventTypes = []string{
 	messaging.DriverCmdLocation,
-	messaging.DriverCmdTripAccept,
-	messaging.DriverCmdTripDecline,
+	messaging.DriverEventTripAccepted,
+	messaging.DriverEventTripDeclined,
 }
 
 var riderEventTypes = []string{

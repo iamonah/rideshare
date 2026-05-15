@@ -34,7 +34,7 @@ export const DriverTripOverview = ({ trip, status, onAcceptTrip, onDeclineTrip }
     )
   }
 
-  if (status === TripEvents.DriverTripAccept) {
+  if (status === TripEvents.DriverTripAccepted) {
     return (
       <TripOverviewCard
         title="All set!"

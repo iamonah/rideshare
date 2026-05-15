@@ -24,8 +24,8 @@ func (rm *RabbitMQClient) setupSharedInfrastructure() error {
 
 	// Driver responses are consumed by the trip workflow so it can assign or retry.
 	if err := rm.declareQueueAndBind(DriverTripResponseQueue, []string{
-		DriverCmdTripAccept,
-		DriverCmdTripDecline,
+		DriverEventTripAccepted,
+		DriverEventTripDeclined,
 	}, nil); err != nil {
 		return fmt.Errorf("bind queue %q : %w", DriverTripResponseQueue, err)
 	}

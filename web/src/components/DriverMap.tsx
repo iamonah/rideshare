@@ -67,7 +67,7 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
     }
 
     sendMessage({
-      type: TripEvents.DriverTripAccept,
+      type: TripEvents.DriverTripAccepted,
       data: {
         tripID: requestedTrip.id,
         riderID: requestedTrip.userID,
@@ -75,7 +75,7 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
       }
     })
 
-    setTripStatus(TripEvents.DriverTripAccept)
+    setTripStatus(TripEvents.DriverTripAccepted)
 
   }
 
@@ -86,7 +86,7 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
     }
 
     sendMessage({
-      type: TripEvents.DriverTripDecline,
+      type: TripEvents.DriverTripDeclined,
       data: {
         tripID: requestedTrip.id,
         riderID: requestedTrip.userID,
@@ -94,7 +94,7 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
       }
     })
 
-    setTripStatus(TripEvents.DriverTripDecline)
+    setTripStatus(TripEvents.DriverTripDeclined)
     resetTripStatus()
   }
 

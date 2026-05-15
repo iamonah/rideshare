@@ -43,14 +43,14 @@ Driver events:
 driver.event.driver_assigned
 driver.event.no_drivers_found
 driver.event.driver_not_interested
+driver.event.trip_accepted
+driver.event.trip_declined
 ```
 
 Driver commands:
 
 ```text
 driver.cmd.trip_request
-driver.cmd.trip_accept
-driver.cmd.trip_decline
 driver.cmd.location
 driver.cmd.register
 ```
@@ -99,15 +99,15 @@ into trip state updates.
 ## Current Bindings
 
 ```text
-trip.events     + trip.event.created                 -> find_available_drivers
-driver.events   + driver.event.driver_not_interested -> find_available_drivers
+trip.events    + trip.event.created                  -> find_available_drivers
+driver.events  + driver.event.driver_not_interested  -> find_available_drivers
 driver.commands + driver.cmd.trip_request            -> driver_cmd_trip_request
-driver.commands + driver.cmd.trip_accept             -> driver_trip_response
-driver.commands + driver.cmd.trip_decline            -> driver_trip_response
-driver.events   + driver.event.no_drivers_found      -> notify_driver_no_drivers_found
-driver.events   + driver.event.driver_assigned       -> notify_driver_assign
-payment.events  + payment.event.session_created      -> notify_payment_session_created
-payment.events  + payment.event.success              -> payment_success
+driver.events  + driver.event.trip_accepted          -> driver_trip_response
+driver.events  + driver.event.trip_declined          -> driver_trip_response
+driver.events  + driver.event.no_drivers_found       -> notify_driver_no_drivers_found
+driver.events  + driver.event.driver_assigned        -> notify_driver_assign
+payment.events + payment.event.session_created       -> notify_payment_session_created
+payment.events + payment.event.success               -> payment_success
 ```
 
 ## Naming Rules
@@ -184,6 +184,8 @@ It means: ask this driver to respond to the trip request.
 The driver's response becomes an event:
 
 ```text
+driver.event.trip_accepted
+driver.event.trip_declined
 driver.event.driver_assigned
 driver.event.driver_not_interested
 ```

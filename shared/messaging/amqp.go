@@ -25,11 +25,11 @@ const (
 	DriverEventDriverAssigned      = "driver.event.driver_assigned"
 	DriverEventNoDriversFound      = "driver.event.no_drivers_found"
 	DriverEventDriverNotInterested = "driver.event.driver_not_interested"
+	DriverEventTripAccepted        = "driver.event.trip_accepted"
+	DriverEventTripDeclined        = "driver.event.trip_declined"
 
 	// Driver commands (driver.cmd.*)
 	DriverCmdTripRequest = "driver.cmd.trip_request"
-	DriverCmdTripAccept  = "driver.cmd.trip_accept"
-	DriverCmdTripDecline = "driver.cmd.trip_decline"
 	DriverCmdLocation    = "driver.cmd.location"
 	DriverCmdRegister    = "driver.cmd.register"
 

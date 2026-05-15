@@ -13,7 +13,7 @@ func (s *Server) ReceiveDriverEvents(client *Client, event contracts.WSMessage) 
 	case messaging.DriverCmdLocation:
 		// Handle driver location update in the future
 		return nil
-	case messaging.DriverCmdTripAccept, messaging.DriverCmdTripDecline:
+	case messaging.DriverEventTripAccepted, messaging.DriverEventTripDeclined:
 		envelope := messaging.AmqpMessage{
 			OwnerID: client.ID,
 			Data:    event.Data,

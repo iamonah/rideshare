@@ -54,9 +54,9 @@ func (c *DriverConsumer) Listen(ctx context.Context) error {
 		}
 		log.Printf("hello world: %+v", event) //why is this not printing?
 		switch msg.RoutingKey {
-		case messaging.DriverCmdTripAccept:
+		case messaging.DriverEventTripAccepted:
 			return c.handleTripAccepted(ctx, event)
-		case messaging.DriverCmdTripDecline:
+		case messaging.DriverEventTripDeclined:
 			return c.handleTripDeclined(ctx, event.TripID, event.RiderID)
 		default:
 			log.Printf("ignoring unsupported driver matching event: %s", msg.RoutingKey)
